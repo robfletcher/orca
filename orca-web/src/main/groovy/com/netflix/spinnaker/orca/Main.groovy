@@ -36,6 +36,7 @@ import com.netflix.spinnaker.orca.pipeline.model.PipelineStage
 import com.netflix.spinnaker.orca.rush.config.RushConfiguration
 import com.netflix.spinnaker.orca.tide.config.TideConfiguration
 import com.netflix.spinnaker.orca.web.config.WebConfiguration
+import com.netfilx.spinnaker.orca.mahe.config.MaheConfiguration
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
 import org.springframework.boot.autoconfigure.batch.BatchAutoConfiguration
@@ -69,6 +70,7 @@ import org.springframework.scheduling.annotation.EnableAsync
   DiscoveryPollingConfiguration,
   TomcatConfiguration,
   MineConfiguration,
+  MaheConfiguration,
   TideConfiguration,
   ApplicationConfig
 ])

@@ -41,7 +41,7 @@ class MonitorPropertiesTask implements Task{
 
     Map context = stage.context
     log.info("MonitorPropertiesTask context: $context")
-    List propertyIds = context.propertyIdList
+    List propertyIds = context.propertyIdList*.propertyId
     log.info("propertyIds: $propertyIds")
 
     List fetchedProperties = []

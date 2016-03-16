@@ -1,10 +1,10 @@
 package com.netfilx.spinnaker.orca.mahe.pipeline
 
+import groovy.util.logging.Slf4j
 import com.netfilx.spinnaker.orca.mahe.tasks.RollbackPropertyTask
 import com.netflix.spinnaker.orca.CancellableStage
 import com.netflix.spinnaker.orca.pipeline.LinearStage
 import com.netflix.spinnaker.orca.pipeline.model.Stage
-import groovy.util.logging.Slf4j
 import org.springframework.batch.core.Step
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component

@@ -15,7 +15,6 @@ import retrofit.Endpoint
 import retrofit.RestAdapter
 import retrofit.client.Client
 import retrofit.converter.JacksonConverter
-
 import static retrofit.Endpoints.newFixedEndpoint
 
 /*
@@ -50,13 +49,11 @@ class MaheConfiguration {
   @Autowired
   RestAdapter.LogLevel retrofitLogLevel
 
-
   @Autowired
   ObjectMapper objectMapper
 
   @Bean
-  Endpoint maheEndpoint(
-    @Value('${mahe.baseUrl}') String maheBaseUrl) {
+  Endpoint maheEndpoint(@Value('${mahe.baseUrl}') String maheBaseUrl) {
     newFixedEndpoint(maheBaseUrl)
   }
 

@@ -1,16 +1,16 @@
 package com.netfilx.spinnaker.orca.mahe.tasks
 
+import groovy.util.logging.Slf4j
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.netfilx.spinnaker.orca.mahe.MaheService
 import com.netflix.spinnaker.orca.DefaultTaskResult
-import com.netflix.spinnaker.orca.ExecutionStatus
 import com.netflix.spinnaker.orca.Task
 import com.netflix.spinnaker.orca.TaskResult
 import com.netflix.spinnaker.orca.pipeline.model.Stage
-import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import retrofit.client.Response
+import static com.netflix.spinnaker.orca.ExecutionStatus.SUCCEEDED
 
 /*
  * Copyright 2016 Netflix, Inc.
@@ -27,29 +27,24 @@ import retrofit.client.Response
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 @Slf4j
 @Component
-class CreatePropertiesTask implements Task{
+class CreatePropertiesTask implements Task {
 
   @Autowired MaheService maheService
   @Autowired ObjectMapper mapper
 
   @Override
   TaskResult execute(Stage stage) {
-
-
     List properties = assemblePersistedPropertyListFromContext(stage.context)
-
     List propertyIdList = []
 
     properties.forEach { Map prop ->
-
       log.info("Upserting Property: ${prop}")
       Response response = maheService.upsertProperty(prop)
       if (response.status == 200 && response.body.mimeType().startsWith('application/')) {
-        Map responseMap = mapper.readValue(response.body.in().text, Map)
-        propertyIdList << responseMap.propertyId
-
+        propertyIdList << mapper.readValue(response.body.in().text, Map)
       } else {
         throw new IllegalStateException("Unable to handle $response for property $prop")
       }
@@ -59,8 +54,13 @@ class CreatePropertiesTask implements Task{
       propertyIdList: propertyIdList
     ]
 
-    return new DefaultTaskResult(ExecutionStatus.SUCCEEDED, outputs)
+    boolean rollback = stage.context.rollbackProperties
 
+    if (rollback) {
+      return new DefaultTaskResult(SUCCEEDED, outputs, outputs)
+    } else {
+      return new DefaultTaskResult(SUCCEEDED, outputs)
+    }
   }
 
   List assemblePersistedPropertyListFromContext(Map<String, Object> context) {
@@ -78,6 +78,5 @@ class CreatePropertiesTask implements Task{
       prop.cmcTicket = cmcTicket
       [property: prop]
     }
-
   }
 }

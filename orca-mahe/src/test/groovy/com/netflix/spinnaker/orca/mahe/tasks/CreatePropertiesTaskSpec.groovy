@@ -2,7 +2,6 @@ package com.netflix.spinnaker.orca.mahe.tasks
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.netfilx.spinnaker.orca.mahe.MaheService
-import com.netfilx.spinnaker.orca.mahe.config.MaheConfiguration
 import com.netfilx.spinnaker.orca.mahe.pipeline.CreatePropertyStage
 import com.netfilx.spinnaker.orca.mahe.pipeline.MonitorCreatePropertyStage
 import com.netfilx.spinnaker.orca.mahe.tasks.CreatePropertiesTask
@@ -10,10 +9,7 @@ import com.netflix.spinnaker.orca.pipeline.model.Pipeline
 import com.netflix.spinnaker.orca.pipeline.model.PipelineStage
 import retrofit.client.Response
 import retrofit.mime.TypedByteArray
-import retrofit.mime.TypedString
-import spock.lang.IgnoreRest
 import spock.lang.Specification
-
 
 /*
  * Copyright 2016 Netflix, Inc.
@@ -123,7 +119,7 @@ class CreatePropertiesTaskSpec extends Specification {
 
     with(results.stageOutputs) {
       propertyIdList.size() == 1
-      propertyIdList.contains('propertyId')
+      propertyIdList.contains(propertyId: 'propertyId')
     }
   }
 
@@ -174,8 +170,8 @@ class CreatePropertiesTaskSpec extends Specification {
     then:
     with(results.stageOutputs) {
       propertyIdList.size() == 2
-      propertyIdList.contains("${properties[0].key}|${properties[0].value}".toString())
-      propertyIdList.contains("${properties[1].key}|${properties[1].value}".toString())
+      propertyIdList.contains(propertyId: "${properties[0].key}|${properties[0].value}".toString())
+      propertyIdList.contains(propertyId: "${properties[1].key}|${properties[1].value}".toString())
     }
   }
 }

@@ -1,12 +1,7 @@
 package com.netfilx.spinnaker.orca.mahe
 
 import retrofit.client.Response
-import retrofit.http.Body
-import retrofit.http.DELETE
-import retrofit.http.GET
-import retrofit.http.POST
-import retrofit.http.Path
-import retrofit.http.Query
+import retrofit.http.*
 
 /*
  * Copyright 2016 Netflix, Inc.
@@ -26,6 +21,9 @@ import retrofit.http.Query
 
 interface MaheService {
   @POST('/properties/create')
+  Response createProperty(@Body Map property)
+
+  @POST('/properties/upsert')
   Response upsertProperty(@Body Map property)
 
   @GET('/properties/prop')

@@ -27,7 +27,7 @@ interface MaheService {
   Response upsertProperty(@Body Map property)
 
   @GET('/properties/prop')
-  Response getPropertyById(@Query('propId') String propId)
+  Response getPropertyById(@Query('propId') String propId, @Query('env') String env)
 
   @DELETE('/properties/delete')
   Response deleteProperty(

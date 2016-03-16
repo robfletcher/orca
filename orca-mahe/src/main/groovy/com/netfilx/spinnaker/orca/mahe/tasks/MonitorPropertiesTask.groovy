@@ -52,7 +52,7 @@ class MonitorPropertiesTask implements Task{
 
     propertyIds.forEach { String id ->
       try {
-        Response response = maheService.getPropertyById(id)
+        Response response = maheService.getPropertyById(id, context.scope.env)
         if (response.status == HttpStatus.SC_OK) {
           Map responseMap = mapper.readValue(response.body.in().text, Map)
           fetchedProperties << responseMap.property

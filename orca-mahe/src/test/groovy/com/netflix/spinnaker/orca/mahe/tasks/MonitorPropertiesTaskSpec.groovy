@@ -40,14 +40,14 @@ class MonitorPropertiesTaskSpec extends Specification {
     def pipeline = new Pipeline(application: 'foo')
     List propertyIds = [[propertyId: propId]]
     List persistedProperty = [[key: 'foo', value:'bar']]
-    Map context = [propertyIdList: propertyIds, persistedProperties: persistedProperty]
+    Map context = [propertyIdList: propertyIds, persistedProperties: persistedProperty, scope: scope]
     def stage = new PipelineStage(pipeline, MonitorCreatePropertyStage.PIPELINE_CONFIG_TYPE, context)
 
     when:
     TaskResult result = task.execute(stage)
 
     then:
-    1 * maheService.getPropertyById(propId) >> { String id ->
+    1 * maheService.getPropertyById(propId, scope.env) >> { String id, String env ->
       def body = JsonOutput.toJson([property: [propertyId: id, key: "foo", value: "bar"]])
       new Response("http://mahe", 200, "OK", [], new TypedByteArray('application/json', body.bytes))
     }
@@ -64,6 +64,7 @@ class MonitorPropertiesTaskSpec extends Specification {
 
     where:
     propId = "foo|bar"
+    scope = [env: "prod"]
   }
 
 }

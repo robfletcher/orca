@@ -16,13 +16,13 @@
 
 package com.netflix.spinnaker.orca.mahe.tasks
 
-import com.netfilx.spinnaker.orca.mahe.MaheService
+import com.netflix.spinnaker.orca.mahe.MaheService
 import com.netflix.spinnaker.orca.mahe.cleanup.FastPropertyCleanupListener
 import com.netflix.spinnaker.orca.pipeline.model.Pipeline
 import com.netflix.spinnaker.orca.pipeline.persistence.ExecutionRepository
 import spock.lang.Specification
 import spock.lang.Subject
-import static com.netfilx.spinnaker.orca.mahe.pipeline.CreatePropertyStage.PIPELINE_CONFIG_TYPE
+import static com.netflix.spinnaker.orca.mahe.pipeline.CreatePropertyStage.PIPELINE_CONFIG_TYPE
 
 class PropertyChangeCleanupSpec extends Specification {
 

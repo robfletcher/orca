@@ -1,10 +1,7 @@
 package com.netflix.spinnaker.orca.mahe.tasks
 
-import com.netfilx.spinnaker.orca.mahe.MaheService
-import com.netfilx.spinnaker.orca.mahe.pipeline.CreatePropertyStage
-import com.netfilx.spinnaker.orca.mahe.pipeline.MonitorCreatePropertyStage
-import com.netfilx.spinnaker.orca.mahe.tasks.CreatePropertiesTask
-import com.netfilx.spinnaker.orca.mahe.tasks.DeletePropertyTask
+import com.netflix.spinnaker.orca.mahe.MaheService
+import com.netflix.spinnaker.orca.mahe.pipeline.CreatePropertyStage
 import com.netflix.spinnaker.orca.pipeline.model.Pipeline
 import com.netflix.spinnaker.orca.pipeline.model.PipelineStage
 import retrofit.client.Response

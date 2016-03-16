@@ -2,10 +2,9 @@ package com.netflix.spinnaker.orca.mahe.tasks
 
 import groovy.json.JsonOutput
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.netfilx.spinnaker.orca.mahe.MaheService
-import com.netfilx.spinnaker.orca.mahe.pipeline.MonitorCreatePropertyStage
-import com.netfilx.spinnaker.orca.mahe.tasks.MonitorPropertiesTask
 import com.netflix.spinnaker.orca.TaskResult
+import com.netflix.spinnaker.orca.mahe.MaheService
+import com.netflix.spinnaker.orca.mahe.pipeline.MonitorCreatePropertyStage
 import com.netflix.spinnaker.orca.pipeline.model.Pipeline
 import com.netflix.spinnaker.orca.pipeline.model.PipelineStage
 import retrofit.client.Response

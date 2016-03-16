@@ -16,11 +16,15 @@
 
 package com.netflix.spinnaker.orca.mahe.cleanup
 
-import com.netfilx.spinnaker.orca.mahe.MaheService
 import com.netflix.spinnaker.orca.batch.ExecutionListener
+import com.netflix.spinnaker.orca.mahe.MaheService
 import com.netflix.spinnaker.orca.pipeline.persistence.ExecutionRepository
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.core.annotation.Order
+import org.springframework.stereotype.Component
 
+@Component
+@Order(0)
 class FastPropertyCleanupListener extends ExecutionListener {
 
   private final MaheService mahe
@@ -45,11 +49,8 @@ class FastPropertyCleanupListener extends ExecutionListener {
   }
 
   private String extractEnvironment(propertyId) {
-    def matcher = (~/\w+\|\w+\|(\w+)\|.*?/).matcher(propertyId)
-    if (matcher.find()) {
-      matcher.group(1)
-    } else {
-      null
+    propertyId.find(~/\w+\|\w+\|(\w+)\|.*?/) { match, env ->
+      env
     }
   }
 }

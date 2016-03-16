@@ -63,7 +63,7 @@ class PropertyChangeCleanupSpec extends Specification {
     listener.afterExecution("pipeline", pipeline.id)
 
     then:
-    1 * mahe.createProperty(previous)
+    1 * mahe.createProperty([property: previous])
 
     where:
     propertyId = "test_rfletcher|mahe|test|us-west-1||||asg=mahe-test-v010|cluster=mahe-test"

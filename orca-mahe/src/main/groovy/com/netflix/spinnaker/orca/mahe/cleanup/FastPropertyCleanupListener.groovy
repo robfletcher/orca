@@ -40,7 +40,7 @@ class FastPropertyCleanupListener extends ExecutionListener {
     execution(type, id).with {
       context.propertyIdList.each {
         if (it.previous) {
-          mahe.createProperty(it.previous)
+          mahe.createProperty([property: it.previous])
         } else {
           mahe.deleteProperty(it.propertyId, "spinnaker rollback", extractEnvironment(it.propertyId))
         }

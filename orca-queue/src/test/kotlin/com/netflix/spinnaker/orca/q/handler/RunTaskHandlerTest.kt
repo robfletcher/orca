@@ -21,6 +21,8 @@ import com.netflix.spinnaker.orca.ExecutionStatus.*
 import com.netflix.spinnaker.orca.TaskResult
 import com.netflix.spinnaker.orca.exceptions.ExceptionHandler
 import com.netflix.spinnaker.orca.pipeline.model.Execution.PausedDetails
+import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.ignore
+import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.stop
 import com.netflix.spinnaker.orca.pipeline.model.Pipeline
 import com.netflix.spinnaker.orca.pipeline.model.Stage
 import com.netflix.spinnaker.orca.pipeline.persistence.ExecutionRepository
@@ -230,8 +232,7 @@ object RunTaskHandlerTest : SubjectSpek<RunTaskHandler>({
         and("the task should not fail the whole pipeline, only the branch") {
           beforeGroup {
             pipeline.stageByRef("1").apply {
-              context["failPipeline"] = false
-              context["continuePipeline"] = false
+              onFailure = stop
             }
 
             whenever(task.execute(any())) doReturn taskResult
@@ -255,8 +256,7 @@ object RunTaskHandlerTest : SubjectSpek<RunTaskHandler>({
         and("the task should allow the pipeline to proceed") {
           beforeGroup {
             pipeline.stageByRef("1").apply {
-              context["failPipeline"] = false
-              context["continuePipeline"] = true
+              onFailure = ignore
             }
 
             whenever(task.execute(any())) doReturn taskResult
@@ -330,8 +330,7 @@ object RunTaskHandlerTest : SubjectSpek<RunTaskHandler>({
         and("the task should not fail the whole pipeline, only the branch") {
           beforeGroup {
             pipeline.stageByRef("1").apply {
-              context["failPipeline"] = false
-              context["continuePipeline"] = false
+              onFailure = stop
             }
 
             whenever(task.execute(any())) doThrow RuntimeException("o noes")
@@ -357,8 +356,7 @@ object RunTaskHandlerTest : SubjectSpek<RunTaskHandler>({
         and("the task should allow the pipeline to proceed") {
           beforeGroup {
             pipeline.stageByRef("1").apply {
-              context["failPipeline"] = false
-              context["continuePipeline"] = true
+              onFailure = ignore
             }
 
             whenever(task.execute(any())) doThrow RuntimeException("o noes")
@@ -563,13 +561,12 @@ object RunTaskHandlerTest : SubjectSpek<RunTaskHandler>({
         val pipeline = pipeline {
           stage {
             type = "whatever"
+            onFailure = ignore
             task {
               id = "1"
               status = RUNNING
               startTime = clock.instant().minusMillis(timeout.toMillis() + 1).toEpochMilli()
             }
-            context["failPipeline"] = false
-            context["continuePipeline"] = true
           }
         }
         val message = RunTask(Pipeline::class.java, pipeline.id, "foo", pipeline.stages.first().id, "1", DummyTask::class.java)
@@ -588,7 +585,6 @@ object RunTaskHandlerTest : SubjectSpek<RunTaskHandler>({
         it("marks the task as failed but continue") {
           verify(queue).push(CompleteTask(message, FAILED_CONTINUE))
         }
-
       }
 
       given("the execution is marked to succeed on timeout") {

@@ -33,6 +33,8 @@ import com.netflix.spinnaker.orca.pipeline.RestrictExecutionDuringTimeWindow
 import com.netflix.spinnaker.orca.pipeline.StageDefinitionBuilder
 import com.netflix.spinnaker.orca.pipeline.TaskNode.Builder
 import com.netflix.spinnaker.orca.pipeline.model.Execution
+import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.failEventual
+import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.ignore
 import com.netflix.spinnaker.orca.pipeline.model.Stage
 import com.netflix.spinnaker.orca.pipeline.persistence.ExecutionRepository
 import com.netflix.spinnaker.orca.pipeline.persistence.jedis.JedisExecutionRepository
@@ -295,7 +297,7 @@ open class QueueIntegrationTest {
         refId = "2a1"
         type = "dummy"
         requisiteStageRefIds = listOf("1")
-        context["continuePipeline"] = true
+        onFailure = ignore
       }
       stage {
         refId = "2a2"
@@ -342,9 +344,7 @@ open class QueueIntegrationTest {
         refId = "2a1"
         type = "dummy"
         requisiteStageRefIds = listOf("1")
-        context["continuePipeline"] = false
-        context["failPipeline"] = false
-        context["completeOtherBranchesThenFail"] = true
+        onFailure = failEventual
       }
       stage {
         refId = "2a2"

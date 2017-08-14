@@ -18,6 +18,7 @@ package com.netflix.spinnaker.orca.q.handler
 
 import com.netflix.spinnaker.orca.ExecutionStatus.*
 import com.netflix.spinnaker.orca.events.ExecutionComplete
+import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.failEventual
 import com.netflix.spinnaker.orca.pipeline.persistence.ExecutionRepository
 import com.netflix.spinnaker.orca.q.*
 import com.netflix.spinnaker.spek.shouldEqual
@@ -177,7 +178,7 @@ object CompleteExecutionHandlerTest : SubjectSpek<CompleteExecutionHandler>({
       stage {
         refId = "1a"
         status = STOPPED
-        context["completeOtherBranchesThenFail"] = true
+        onFailure = failEventual
       }
       stage {
         refId = "1b"

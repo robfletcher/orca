@@ -17,6 +17,7 @@ import com.netflix.spinnaker.orca.ExecutionStatus;
 import com.netflix.spinnaker.orca.jackson.OrcaObjectMapper;
 import com.netflix.spinnaker.orca.listeners.StageTaskPropagationListener;
 import static com.netflix.spinnaker.orca.ExecutionStatus.NOT_STARTED;
+import static com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.fail;
 import static java.lang.String.format;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
@@ -235,6 +236,9 @@ public class Stage<T extends Execution<T>> implements Serializable {
 
   @Nullable
   private Long timeoutMs = null;
+
+  @Nonnull
+  private FailurePolicy onFailure = fail;
 
   /**
    * A date when this stage is scheduled to execute.

@@ -27,6 +27,8 @@ import com.netflix.spinnaker.orca.pipeline.model.SyntheticStageOwner
 import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
+import static com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.fail
+import static com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.ignore
 
 @Slf4j
 @Component
@@ -40,9 +42,9 @@ class CanaryStage implements StageDefinitionBuilder, CancellableStage {
   @Override
   def <T extends Execution<T>> List<Stage<T>> aroundStages(Stage<T> stage) {
     Map canaryStageId = [
-      canaryStageId: stage.id,
-      failPipeline: stage.context.failPipeline,
-      continuePipeline: stage.context.continuePipeline
+      canaryStageId   : stage.id,
+      failPipeline    : stage.onFailure == fail,
+      continuePipeline: stage.onFailure == ignore
     ]
 
     Map<String, Object> deployContext = canaryStageId + stage.context

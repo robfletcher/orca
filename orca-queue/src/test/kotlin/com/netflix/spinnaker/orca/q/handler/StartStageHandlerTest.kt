@@ -27,6 +27,8 @@ import com.netflix.spinnaker.orca.ExecutionStatus.*
 import com.netflix.spinnaker.orca.events.StageStarted
 import com.netflix.spinnaker.orca.exceptions.ExceptionHandler
 import com.netflix.spinnaker.orca.pipeline.RestrictExecutionDuringTimeWindow
+import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.ignore
+import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.stop
 import com.netflix.spinnaker.orca.pipeline.model.Pipeline
 import com.netflix.spinnaker.orca.pipeline.model.Stage
 import com.netflix.spinnaker.orca.pipeline.model.SyntheticStageOwner.STAGE_AFTER
@@ -644,8 +646,7 @@ object StartStageHandlerTest : SubjectSpek<StartStageHandler>({
         and("only the branch should fail") {
           beforeGroup {
             pipeline.stageByRef("1").apply {
-              context["failPipeline"] = false
-              context["continuePipeline"] = false
+              onFailure = stop
             }
 
             whenever(repository.retrievePipeline(message.executionId)) doReturn pipeline
@@ -674,8 +675,7 @@ object StartStageHandlerTest : SubjectSpek<StartStageHandler>({
         and("the branch should be allowed to continue") {
           beforeGroup {
             pipeline.stageByRef("1").apply {
-              context["failPipeline"] = false
-              context["continuePipeline"] = true
+              onFailure = ignore
             }
 
             whenever(repository.retrievePipeline(message.executionId)) doReturn pipeline

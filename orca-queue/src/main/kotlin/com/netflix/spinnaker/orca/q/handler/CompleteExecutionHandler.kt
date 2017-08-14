@@ -20,6 +20,7 @@ import com.netflix.spinnaker.orca.ExecutionStatus
 import com.netflix.spinnaker.orca.ExecutionStatus.*
 import com.netflix.spinnaker.orca.events.ExecutionComplete
 import com.netflix.spinnaker.orca.pipeline.model.Execution
+import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.failEventual
 import com.netflix.spinnaker.orca.pipeline.model.Stage
 import com.netflix.spinnaker.orca.pipeline.persistence.ExecutionRepository
 import com.netflix.spinnaker.orca.q.*
@@ -96,7 +97,7 @@ open class CompleteExecutionHandler
   private fun Execution<*>.shouldOverrideSuccess(): Boolean =
     getStages()
       .filter { it.getStatus() == STOPPED }
-      .any { it.getContext()["completeOtherBranchesThenFail"] == true }
+      .any { it.getOnFailure() == failEventual }
 
   private fun List<Stage<*>>.otherBranchesIncomplete() =
     any { it.getStatus() == RUNNING } ||

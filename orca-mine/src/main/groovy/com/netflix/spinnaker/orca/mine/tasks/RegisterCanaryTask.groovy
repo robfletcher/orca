@@ -55,12 +55,14 @@ class RegisterCanaryTask implements Task {
     }
 
     def canary = mineService.getCanary(canaryId)
-    def outputs = [
-      canary              : canary,
-      stageTimeoutMs      : getMonitorTimeout(canary),
-      deployedClusterPairs: deployStage.context.deployedClusterPairs
-    ]
-    return new TaskResult(ExecutionStatus.SUCCEEDED, outputs)
+    return new TaskResult(
+      ExecutionStatus.SUCCEEDED,
+      [
+        canary              : canary,
+        deployedClusterPairs: deployStage.context.deployedClusterPairs
+      ],
+      getMonitorTimeout(canary)
+    )
   }
 
   Map buildCanary(String app, Stage stage) {

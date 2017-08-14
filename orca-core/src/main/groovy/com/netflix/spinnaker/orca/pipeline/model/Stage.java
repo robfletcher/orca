@@ -233,6 +233,9 @@ public class Stage<T extends Execution<T>> implements Serializable {
     this.requisiteStageRefIds = ImmutableSet.copyOf(requisiteStageRefIds);
   }
 
+  @Nullable
+  private Long timeoutMs = null;
+
   /**
    * A date when this stage is scheduled to execute.
    */
@@ -387,15 +390,8 @@ public class Stage<T extends Execution<T>> implements Serializable {
         throw new IllegalStateException("Could not find stage by parentStageId (stage: " + topLevelStage.getId() + ", parentStageId:" + sid + ")");
       }
     }
-    Object timeout = topLevelStage.getContext().get("stageTimeoutMs");
-    if (timeout instanceof Integer) {
-      return Optional.of((Integer) timeout).map(Long::new);
-    } else if (timeout instanceof Long) {
-      return Optional.of((Long) timeout);
-    } else if (timeout instanceof Double) {
-      return Optional.of((Double) timeout).map(Double::longValue);
-    }
-    return Optional.empty();
+    Long timeout = topLevelStage.timeoutMs;
+    return Optional.ofNullable(timeout);
   }
 
   public static class LastModifiedDetails implements Serializable {
@@ -442,7 +438,4 @@ public class Stage<T extends Execution<T>> implements Serializable {
       .filter(it -> it.getRequisiteStageRefIds().contains(getRefId()))
       .collect(toList());
   }
-
-  public static final String STAGE_TIMEOUT_OVERRIDE_KEY = "stageTimeoutMs";
-
 }

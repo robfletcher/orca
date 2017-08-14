@@ -53,13 +53,14 @@ class RegisterAcaTaskTask implements Task {
     }
 
     def canary = mineService.getCanary(canaryId)
-    def outputs = [
-      canary: canary,
-      continueOnUnhealthy: stage.context.continueOnUnhealthy ?: false,
-      stageTimeoutMs: getMonitorTimeout(canary),
-    ]
-
-    return new TaskResult(ExecutionStatus.SUCCEEDED, outputs)
+    return new TaskResult(
+      ExecutionStatus.SUCCEEDED,
+      [
+        canary             : canary,
+        continueOnUnhealthy: stage.context.continueOnUnhealthy ?: false
+      ],
+      getMonitorTimeout(canary)
+    )
   }
 
   Map buildCanary(String app, Stage stage) {

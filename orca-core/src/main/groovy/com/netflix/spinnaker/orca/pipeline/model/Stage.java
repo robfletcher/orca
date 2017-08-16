@@ -31,12 +31,21 @@ public class Stage<T extends Execution<T>> implements Serializable {
     this.execution = execution;
     this.type = type;
     this.name = name;
-    this.context.putAll(context);
 
     this.refId = (String) context.remove("refId");
+    if (context.containsKey("timeoutMs")) {
+      this.timeoutMs = (Long) context.remove("timeoutMs");
+    } else if (context.containsKey("stageTimeoutMs")) {
+      this.timeoutMs = (Long) context.remove("stageTimeoutMs");
+    }
+    if (context.containsKey("onFailure")) {
+      this.onFailure = FailurePolicy.valueOf(context.remove("onFailure").toString());
+    }
     this.requisiteStageRefIds = Optional
       .ofNullable((Collection<String>) context.remove("requisiteStageRefIds"))
       .orElse(emptySet());
+
+    this.context.putAll(context);
   }
 
   public Stage(T execution, String type, Map<String, Object> context) {

@@ -27,8 +27,7 @@ import com.netflix.spinnaker.orca.ExecutionStatus.*
 import com.netflix.spinnaker.orca.events.StageStarted
 import com.netflix.spinnaker.orca.exceptions.ExceptionHandler
 import com.netflix.spinnaker.orca.pipeline.RestrictExecutionDuringTimeWindow
-import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.ignore
-import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.stop
+import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.*
 import com.netflix.spinnaker.orca.pipeline.model.Pipeline
 import com.netflix.spinnaker.orca.pipeline.model.Stage
 import com.netflix.spinnaker.orca.pipeline.model.SyntheticStageOwner.STAGE_AFTER
@@ -764,6 +763,18 @@ object StartStageHandlerTest : SubjectSpek<StartStageHandler>({
           allElements(equalTo(stageWithParallelBranches.type))
         )
         // TODO: contexts, etc.
+      }
+
+      it("respects failure overrides") {
+        with(pipeline) {
+          stageByRef("1=1").onFailure shouldEqual fail
+          stageByRef("1=2").onFailure shouldEqual fail
+          stageByRef("1=3").onFailure shouldEqual stop
+
+          stages
+            .filter { it.parentStageId == message.stageId }
+            .none { it.context.containsKey("failPipeline") }
+        }
       }
 
       it("renames the primary branch") {

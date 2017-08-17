@@ -24,6 +24,8 @@ import com.netflix.spinnaker.orca.pipeline.TaskNode
 import com.netflix.spinnaker.orca.pipeline.TaskNode.TaskDefinition
 import com.netflix.spinnaker.orca.pipeline.TaskNode.TaskGraph
 import com.netflix.spinnaker.orca.pipeline.model.*
+import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.fail
+import com.netflix.spinnaker.orca.pipeline.model.FailurePolicy.stop
 import com.netflix.spinnaker.orca.pipeline.model.SyntheticStageOwner.STAGE_AFTER
 import com.netflix.spinnaker.orca.pipeline.model.SyntheticStageOwner.STAGE_BEFORE
 
@@ -155,11 +157,14 @@ private fun StageDefinitionBuilder.buildParallelStages(stage: Stage<out Executio
         val execution = stage.getExecution()
         val stageType = context.getOrDefault("type", stage.getType()).toString()
         val stageName = context.getOrDefault("name", stage.getName()).toString()
+        val onFailure = if (context.remove("failPipeline") != false) fail else stop // TODO: this is really just for precondition stages, we should revisit how that works
         @Suppress("UNCHECKED_CAST")
         when (execution) {
           is Pipeline -> newStage(execution, stageType, stageName, context.filterKeys { it != "restrictExecutionDuringTimeWindow" }, stage as Stage<Pipeline>, STAGE_BEFORE)
           is Orchestration -> newStage(execution, stageType, stageName, context.filterKeys { it != "restrictExecutionDuringTimeWindow" }, stage as Stage<Orchestration>, STAGE_BEFORE)
           else -> throw IllegalStateException()
+        }.also {
+          it.setOnFailure(onFailure)
         }
       }
       .forEachIndexed { i, it ->

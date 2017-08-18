@@ -34,9 +34,9 @@ public class Stage<T extends Execution<T>> implements Serializable {
 
     this.refId = (String) context.remove("refId");
     if (context.containsKey("timeoutMs")) {
-      this.timeoutMs = (Long) context.remove("timeoutMs");
+      this.timeoutMs = ((Number) context.remove("timeoutMs")).longValue();
     } else if (context.containsKey("stageTimeoutMs")) {
-      this.timeoutMs = (Long) context.remove("stageTimeoutMs");
+      this.timeoutMs = ((Number) context.remove("stageTimeoutMs")).longValue();
     }
     if (context.containsKey("onFailure")) {
       this.onFailure = FailurePolicy.valueOf(context.remove("onFailure").toString());

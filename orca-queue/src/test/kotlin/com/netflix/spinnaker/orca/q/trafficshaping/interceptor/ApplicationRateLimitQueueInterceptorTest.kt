@@ -19,22 +19,20 @@ import com.netflix.spectator.api.Id
 import com.netflix.spectator.api.NoopRegistry
 import com.netflix.spinnaker.config.TrafficShapingProperties
 import com.netflix.spinnaker.orca.pipeline.model.Pipeline
-import com.netflix.spinnaker.orca.q.Message
-import com.netflix.spinnaker.orca.q.Queue
 import com.netflix.spinnaker.orca.q.StartStage
 import com.netflix.spinnaker.orca.q.TotalThrottleTimeAttribute
-import com.netflix.spinnaker.orca.q.memory.InMemoryQueue
 import com.netflix.spinnaker.orca.q.trafficshaping.ratelimit.RateLimit
 import com.netflix.spinnaker.orca.q.trafficshaping.ratelimit.RateLimitBackend
+import com.netflix.spinnaker.q.Message
+import com.netflix.spinnaker.q.Queue
+import com.netflix.spinnaker.q.memory.InMemoryQueue
 import com.nhaarman.mockito_kotlin.any
 import com.nhaarman.mockito_kotlin.doReturn
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.whenever
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
+import org.junit.Assert.*
 import java.time.Clock
 import java.time.Duration
 

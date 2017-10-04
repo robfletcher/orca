@@ -30,6 +30,8 @@ import com.netflix.spinnaker.orca.pipeline.util.StageNavigator
 import com.netflix.spinnaker.orca.q.*
 import com.netflix.spinnaker.orca.time.toDuration
 import com.netflix.spinnaker.orca.time.toInstant
+import com.netflix.spinnaker.q.Message
+import com.netflix.spinnaker.q.Queue
 import org.apache.commons.lang.time.DurationFormatUtils
 import org.springframework.stereotype.Component
 import java.time.Clock
@@ -49,7 +51,7 @@ class RunTaskHandler(
   private val clock: Clock,
   private val exceptionHandlers: List<ExceptionHandler>,
   private val registry: Registry
-) : MessageHandler<RunTask>, ExpressionAware, AuthenticationAware {
+) : OrcaMessageHandler<RunTask>, ExpressionAware, AuthenticationAware {
 
   override fun handle(message: RunTask) {
     message.withTask { stage, taskModel, task ->
@@ -88,7 +90,7 @@ class RunTaskHandler(
         }
       } catch (e: Exception) {
         val exceptionDetails = exceptionHandlers.shouldRetry(e, taskModel.name)
-        if (exceptionDetails?.shouldRetry ?: false) {
+        if (exceptionDetails?.shouldRetry == true) {
           log.warn("Error running ${message.taskType.simpleName} for ${message.executionType.simpleName}[${message.executionId}]")
           queue.push(message, task.backoffPeriod(taskModel))
           trackResult(stage, taskModel, RUNNING)
@@ -210,7 +212,7 @@ class RunTaskHandler(
   private fun Execution<*>.pausedDurationRelativeTo(instant: Instant?): Duration {
     val pausedDetails = getPaused()
     if (pausedDetails != null) {
-      return if (pausedDetails.pauseTime.toInstant()?.isAfter(instant) ?: false) {
+      return if (pausedDetails.pauseTime.toInstant()?.isAfter(instant) == true) {
         Duration.ofMillis(pausedDetails.pausedMs)
       } else ZERO
     } else return ZERO

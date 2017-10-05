@@ -18,11 +18,10 @@ apply from: "$rootDir/gradle/kotlin.gradle"
 apply from: "$rootDir/gradle/spek.gradle"
 
 dependencies {
-  compile project(":orca-core")
-  compile "com.netflix.spinnaker.keiko:keiko-spring:1.1.2"
-  compile "org.threeten:threeten-extra:1.0"
-  compile "org.funktionale:funktionale-partials:1.1"
+  compile "com.nhaarman:mockito-kotlin:1.5.0"
+  compile "com.natpryce:hamkrest:1.4.2.0"
 
-  testCompile project(":orca-test")
-  testCompile project(":orca-queue-tck")
+  compile "org.springframework.boot:spring-boot-test:${spinnaker.version('springBoot')}"
+  compile "com.netflix.spinnaker.keiko:keiko-mem:1.1.2"
+  compile project(":orca-test")
 }

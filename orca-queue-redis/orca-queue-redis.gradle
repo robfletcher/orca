@@ -26,5 +26,5 @@ dependencies {
   compile "com.netflix.spinnaker.keiko:keiko-redis-spring:1.1.2"
   compile "com.fasterxml.jackson.module:jackson-module-kotlin:${spinnaker.version("jackson")}"
 
-  testCompile project(path: ":orca-queue", configuration: "testOutput")
+  testCompile project(":orca-queue-tck")
 }

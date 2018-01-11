@@ -29,59 +29,138 @@ import com.netflix.spinnaker.orca.proto.execution.ManualTrigger
 import com.netflix.spinnaker.orca.proto.execution.WaitStage
 import com.nhaarman.mockito_kotlin.argumentCaptor
 import com.nhaarman.mockito_kotlin.mock
+import com.nhaarman.mockito_kotlin.reset
 import com.nhaarman.mockito_kotlin.verify
 import io.grpc.internal.testing.StreamRecorder
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
+import org.jetbrains.spek.api.dsl.on
 import java.util.*
 
 class StartExecutionTest : Spek({
 
   val launcher: ExecutionLauncher = mock()
   val service = ExecutionService(launcher)
+  fun resetMocks() = reset(launcher)
 
   describe("starting an execution") {
 
+    val waitStage = WaitStage.newBuilder()
+      .setName("wait")
+      .setWaitTime(Duration.newBuilder().setSeconds(30).build())
+      .build()
+
+    val manualTrigger = ManualTrigger.newBuilder()
+      .setUser("fzlem@netflix.com")
+      .build()
+
+    val baseRequest = ExecutionRequest.newBuilder()
+      .setApplication("orca")
+      .setName("Test Pipeline")
+      .setId(UUID.randomUUID().toString())
+      .setTrigger(manualTrigger.pack())
+      .build()
+
     describe("with a single stage") {
 
+      val stage = WaitStage.newBuilder()
+        .mergeFrom(waitStage)
+        .setRef("1")
+        .build()
+
       val request = ExecutionRequest.newBuilder()
-        .setApplication("orca")
-        .setName("Test Pipeline")
-        .setId(UUID.randomUUID().toString())
-        .addStages(WaitStage.newBuilder()
-          .setName("wait")
-          .setRef("1")
-          .setWaitTime(Duration.newBuilder().setSeconds(30).build())
-          .build()
-          .pack()
-        )
-        .setTrigger(ManualTrigger.newBuilder()
-          .setUser("fzlem@netflix.com")
-//          .putParameters("foo", Any.pack("bar"))
-          .build()
-          .pack()
-        )
+        .mergeFrom(baseRequest)
+        .addStages(stage.pack())
         .build()
 
       val response = StreamRecorder.create<ExecutionResponse>()
 
-      service.start(request, response)
+      on("sending the request") {
+        service.start(request, response)
+      }
+
+      afterGroup(::resetMocks)
 
       it("starts a pipeline") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          firstValue.let { pipeline ->
-            pipeline.application shouldMatch equalTo(request.application)
-            pipeline.name shouldMatch equalTo(request.name)
-            pipeline.pipelineConfigId shouldMatch equalTo(request.id)
-            pipeline.stages shouldMatch hasSize(equalTo(1))
-            pipeline.stages.first().let { stage ->
-              stage.type shouldMatch equalTo("wait")
-              stage.name shouldMatch equalTo("wait")
-              stage.refId shouldMatch equalTo("1")
-              stage.requisiteStageRefIds shouldMatch isEmpty
-              stage.context["waitTime"].toString() shouldMatch equalTo("30")
+          firstValue.apply {
+            application shouldMatch equalTo(request.application)
+            name shouldMatch equalTo(request.name)
+            pipelineConfigId shouldMatch equalTo(request.id)
+          }
+        }
+      }
+
+      it("configures the stage correctly") {
+        argumentCaptor<Execution>().apply {
+          verify(launcher).start(capture())
+          firstValue.apply {
+            stages shouldMatch hasSize(equalTo(1))
+            stages.first().apply {
+              type shouldMatch equalTo("wait")
+              name shouldMatch equalTo(stage.name)
+              refId shouldMatch equalTo(stage.ref)
+              requisiteStageRefIds shouldMatch isEmpty
+              context["waitTime"] as Long shouldMatch equalTo(stage.waitTime.seconds)
+            }
+          }
+        }
+      }
+    }
+
+    describe("with dependent stages") {
+
+      val stage1 = WaitStage.newBuilder()
+        .mergeFrom(waitStage)
+        .setRef("1")
+        .build()
+
+      val stage2 = WaitStage.newBuilder()
+        .mergeFrom(waitStage)
+        .setRef("2")
+        .addDependsOn("1")
+        .build()
+
+      val stage3 = WaitStage.newBuilder()
+        .mergeFrom(waitStage)
+        .setRef("3")
+        .addDependsOn("1")
+        .build()
+
+      val stage4 = WaitStage.newBuilder()
+        .mergeFrom(waitStage)
+        .setRef("4")
+        .addAllDependsOn(listOf("2", "3"))
+        .build()
+
+      val request = ExecutionRequest.newBuilder()
+        .mergeFrom(baseRequest)
+        .addStages(stage1.pack())
+        .addStages(stage2.pack())
+        .addStages(stage3.pack())
+        .addStages(stage4.pack())
+        .build()
+
+      val response = StreamRecorder.create<ExecutionResponse>()
+
+      on("sending the request") {
+        service.start(request, response)
+      }
+
+      afterGroup(::resetMocks)
+
+      it("configures the stage dependencies correctly") {
+        argumentCaptor<Execution>().apply {
+          verify(launcher).start(capture())
+          firstValue.apply {
+            stages shouldMatch hasSize(equalTo(4))
+            listOf(stage1, stage2, stage3, stage4).forEach {
+              stageByRef(it.ref).apply {
+                refId shouldMatch equalTo(it.ref)
+                requisiteStageRefIds.toSet() shouldMatch equalTo(it.dependsOnList.toSet())
+              }
             }
           }
         }

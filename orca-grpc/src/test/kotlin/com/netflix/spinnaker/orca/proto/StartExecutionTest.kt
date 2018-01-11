@@ -16,10 +16,8 @@
 
 package com.netflix.spinnaker.orca.proto
 
-import com.google.protobuf.BoolValue
 import com.google.protobuf.Duration
-import com.google.protobuf.Int32Value
-import com.google.protobuf.StringValue
+import com.google.protobuf.Value
 import com.natpryce.hamkrest.equalTo
 import com.natpryce.hamkrest.hasSize
 import com.natpryce.hamkrest.isEmpty
@@ -190,10 +188,13 @@ class StartExecutionTest : Spek({
     describe("with trigger parameters") {
       val trigger = ManualTrigger.newBuilder()
         .mergeFrom(manualTrigger)
-        .putParameters("foo", StringValue.newBuilder().setValue("covfefe").build().pack())
-        .putParameters("bar", Int32Value.newBuilder().setValue(1337).build().pack())
-        .putParameters("baz", BoolValue.newBuilder().setValue(true).build().pack())
-        .build()
+        .apply {
+          parametersBuilder
+            .putFields("foo", Value.newBuilder().setStringValue("covfefe").build())
+            .putFields("bar", Value.newBuilder().setNumberValue(1337.0).build())
+            .putFields("baz", Value.newBuilder().setBoolValue(true).build())
+            .build()
+        }.build()
 
       val request = ExecutionRequest.newBuilder()
         .mergeFrom(baseRequest)
@@ -211,7 +212,7 @@ class StartExecutionTest : Spek({
           verify(launcher).start(capture())
           firstValue.trigger["parameters"] as Map<String, Any> shouldMatch equalTo(mapOf(
             "foo" to "covfefe",
-            "bar" to 1337,
+            "bar" to 1337.0,
             "baz" to true
           ))
         }

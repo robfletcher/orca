@@ -16,9 +16,7 @@
 
 package com.netflix.spinnaker.orca.proto
 
-import com.google.protobuf.BoolValue
-import com.google.protobuf.Int32Value
-import com.google.protobuf.StringValue
+import com.google.protobuf.Value
 import com.netflix.spinnaker.orca.pipeline.ExecutionLauncher
 import com.netflix.spinnaker.orca.pipeline.model.Execution
 import com.netflix.spinnaker.orca.pipeline.model.Execution.ExecutionType.PIPELINE
@@ -68,7 +66,7 @@ class ExecutionService(
           mapOf(
             "type" to "manual",
             "user" to trigger.user,
-            "parameters" to trigger.parametersMap.unpackValues(),
+            "parameters" to trigger.parameters.fieldsMap.mapValues { (_, value) -> value.unpackValue() },
             "correlationId" to trigger.correlationId,
             "notifications" to trigger.notificationsList.map {
               mapOf(
@@ -85,15 +83,16 @@ class ExecutionService(
         TODO("Trigger type ${request.trigger.typeUrl} is not yet supported")
     }
 
-  private fun Map<String, com.google.protobuf.Any>.unpackValues(): Map<String, Any> =
-    mapValues { (_, value) ->
-      @Suppress("IMPLICIT_CAST_TO_ANY")
-      when {
-        value.isA<StringValue>() -> value.unpack<StringValue>().value
-        value.isA<Int32Value>() -> value.unpack<Int32Value>().value
-        value.isA<BoolValue>() -> value.unpack<BoolValue>().value
-        else -> TODO("Parameter value type ${value.typeUrl} is not yet supported")
-      }
+  private fun Value.unpackValue(): Any? =
+    @Suppress("IMPLICIT_CAST_TO_ANY")
+    when (kindCase) {
+      Value.KindCase.STRING_VALUE -> stringValue
+      Value.KindCase.NUMBER_VALUE -> numberValue
+      Value.KindCase.BOOL_VALUE -> boolValue
+      Value.KindCase.NULL_VALUE -> null
+      Value.KindCase.STRUCT_VALUE -> structValue.fieldsMap.mapValues { (_, value) -> value.unpackValue() }
+      Value.KindCase.LIST_VALUE -> listValue.valuesList.map { it.unpackValue() }
+      Value.KindCase.KIND_NOT_SET -> throw IllegalStateException("Value type not set")
     }
 
   private fun convertStage(stage: com.google.protobuf.Any): Triple<String, String, Map<String, Any>> =

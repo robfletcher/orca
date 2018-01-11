@@ -26,6 +26,7 @@ buildscript {
     classpath "org.junit.platform:junit-platform-gradle-plugin:$junitVersion"
     classpath "com.netflix.nebula:nebula-kotlin-plugin:$kotlinVersion"
     classpath "org.jetbrains.kotlin:kotlin-allopen:$kotlinVersion"
+    classpath "com.google.protobuf:protobuf-gradle-plugin:0.8.3"
   }
 }
 

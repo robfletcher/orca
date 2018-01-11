@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.netflix.spinnaker.orca.proto.execution";
+
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+
+message WaitStage {
+  string name = 1;
+  string ref = 2;
+  repeated string dependsOn = 3;
+  google.protobuf.Duration waitTime = 4;
+}

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.netflix.spinnaker.orca.proto.execution";
+
+import "google/protobuf/any.proto";
+
+message ManualTrigger {
+  string user = 1;
+  string correlationId = 2;
+  map<string, google.protobuf.Any> parameters = 3; // TODO: parameter type
+  map<string, google.protobuf.Any> notifications = 4; // TODO: notification type
+}
+
+message JenkinsTrigger {
+  string master = 1;
+  string job = 2;
+  string buildNumber = 3;
+}

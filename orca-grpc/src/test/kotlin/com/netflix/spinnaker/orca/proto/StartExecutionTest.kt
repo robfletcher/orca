@@ -16,7 +16,10 @@
 
 package com.netflix.spinnaker.orca.proto
 
+import com.google.protobuf.BoolValue
 import com.google.protobuf.Duration
+import com.google.protobuf.Int32Value
+import com.google.protobuf.StringValue
 import com.natpryce.hamkrest.equalTo
 import com.natpryce.hamkrest.hasSize
 import com.natpryce.hamkrest.isEmpty
@@ -44,26 +47,26 @@ class StartExecutionTest : Spek({
   val service = ExecutionService(launcher)
   fun resetMocks() = reset(launcher)
 
+  val waitStage = WaitStage.newBuilder()
+    .setName("wait")
+    .setWaitTime(Duration.newBuilder().setSeconds(30).build())
+    .build()
+
+  val manualTrigger = ManualTrigger.newBuilder()
+    .setUser("fzlem@netflix.com")
+    .build()
+
+  val baseRequest = ExecutionRequest.newBuilder()
+    .setApplication("orca")
+    .setName("Test Pipeline")
+    .setId(UUID.randomUUID().toString())
+    .setTrigger(manualTrigger.pack())
+    .build()
+
+  val response = StreamRecorder.create<ExecutionResponse>()
+
   describe("starting an execution") {
-
-    val waitStage = WaitStage.newBuilder()
-      .setName("wait")
-      .setWaitTime(Duration.newBuilder().setSeconds(30).build())
-      .build()
-
-    val manualTrigger = ManualTrigger.newBuilder()
-      .setUser("fzlem@netflix.com")
-      .build()
-
-    val baseRequest = ExecutionRequest.newBuilder()
-      .setApplication("orca")
-      .setName("Test Pipeline")
-      .setId(UUID.randomUUID().toString())
-      .setTrigger(manualTrigger.pack())
-      .build()
-
     describe("with a single stage") {
-
       val stage = WaitStage.newBuilder()
         .mergeFrom(waitStage)
         .setRef("1")
@@ -73,8 +76,6 @@ class StartExecutionTest : Spek({
         .mergeFrom(baseRequest)
         .addStages(stage.pack())
         .build()
-
-      val response = StreamRecorder.create<ExecutionResponse>()
 
       on("sending the request") {
         service.start(request, response)
@@ -89,6 +90,16 @@ class StartExecutionTest : Spek({
             application shouldMatch equalTo(request.application)
             name shouldMatch equalTo(request.name)
             pipelineConfigId shouldMatch equalTo(request.id)
+          }
+        }
+      }
+
+      it("configures the trigger correctly") {
+        argumentCaptor<Execution>().apply {
+          verify(launcher).start(capture())
+          firstValue.apply {
+            trigger["type"] as String shouldMatch equalTo("manual")
+            trigger["user"] as String shouldMatch equalTo(manualTrigger.user)
           }
         }
       }
@@ -111,7 +122,6 @@ class StartExecutionTest : Spek({
     }
 
     describe("with dependent stages") {
-
       val stage1 = WaitStage.newBuilder()
         .mergeFrom(waitStage)
         .setRef("1")
@@ -143,8 +153,6 @@ class StartExecutionTest : Spek({
         .addStages(stage4.pack())
         .build()
 
-      val response = StreamRecorder.create<ExecutionResponse>()
-
       on("sending the request") {
         service.start(request, response)
       }
@@ -163,6 +171,37 @@ class StartExecutionTest : Spek({
               }
             }
           }
+        }
+      }
+    }
+
+    describe("with trigger parameters") {
+      val trigger = ManualTrigger.newBuilder()
+        .mergeFrom(manualTrigger)
+        .putParameters("foo", StringValue.newBuilder().setValue("covfefe").build().pack())
+        .putParameters("bar", Int32Value.newBuilder().setValue(1337).build().pack())
+        .putParameters("baz", BoolValue.newBuilder().setValue(true).build().pack())
+        .build()
+
+      val request = ExecutionRequest.newBuilder()
+        .mergeFrom(baseRequest)
+        .setTrigger(trigger.pack())
+        .build()
+
+      on("sending the request") {
+        service.start(request, response)
+      }
+
+      afterGroup(::resetMocks)
+
+      it("parses parameters correctly") {
+        argumentCaptor<Execution>().apply {
+          verify(launcher).start(capture())
+          firstValue.trigger["parameters"] as Map<String, Any> shouldMatch equalTo(mapOf(
+            "foo" to "covfefe",
+            "bar" to 1337,
+            "baz" to true
+          ))
         }
       }
     }

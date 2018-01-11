@@ -16,6 +16,9 @@
 
 package com.netflix.spinnaker.orca.proto
 
+import com.google.protobuf.BoolValue
+import com.google.protobuf.Int32Value
+import com.google.protobuf.StringValue
 import com.netflix.spinnaker.orca.pipeline.ExecutionLauncher
 import com.netflix.spinnaker.orca.pipeline.model.Execution
 import com.netflix.spinnaker.orca.pipeline.model.Execution.ExecutionType.PIPELINE
@@ -64,7 +67,8 @@ class ExecutionService(
         request.trigger.unpack<ManualTrigger>().let { trigger ->
           mapOf(
             "type" to "manual",
-            "parameters" to trigger.parametersMap,
+            "user" to trigger.user,
+            "parameters" to trigger.parametersMap.unpackValues(),
             "correlationId" to trigger.correlationId,
             "notifications" to trigger.notificationsMap
           )
@@ -72,6 +76,17 @@ class ExecutionService(
       }
       else ->
         TODO("Trigger type ${request.trigger.typeUrl} is not yet supported")
+    }
+
+  private fun Map<String, com.google.protobuf.Any>.unpackValues(): Map<String, Any> =
+    mapValues { (_, value) ->
+      @Suppress("IMPLICIT_CAST_TO_ANY")
+      when {
+        value.isA<StringValue>() -> value.unpack<StringValue>().value
+        value.isA<Int32Value>() -> value.unpack<Int32Value>().value
+        value.isA<BoolValue>() -> value.unpack<BoolValue>().value
+        else -> TODO("Parameter value type ${value.typeUrl} is not yet supported")
+      }
     }
 
   private fun convertStage(stage: com.google.protobuf.Any): Triple<String, String, Map<String, Any>> =

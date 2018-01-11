@@ -121,6 +121,16 @@ class StartExecutionTest : Spek({
           }
         }
       }
+
+      it("responds with the new pipeline id") {
+        val id = argumentCaptor<Execution>().run {
+          verify(launcher).start(capture())
+          firstValue.id
+        }
+
+        response.values.size shouldMatch equalTo(1)
+        response.values.first().id shouldMatch equalTo(id)
+      }
     }
 
     describe("with dependent stages") {

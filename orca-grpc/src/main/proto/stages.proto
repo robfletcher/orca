@@ -1,9 +1,10 @@
 syntax = "proto3";
 
+package spinnaker;
+
 option java_multiple_files = true;
 option java_package = "com.netflix.spinnaker.orca.proto.execution";
 
-import "google/protobuf/any.proto";
 import "google/protobuf/duration.proto";
 
 message WaitStage {

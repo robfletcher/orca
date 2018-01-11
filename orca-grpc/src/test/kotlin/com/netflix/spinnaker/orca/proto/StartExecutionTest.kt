@@ -29,6 +29,8 @@ import com.netflix.spinnaker.orca.pipeline.model.Execution
 import com.netflix.spinnaker.orca.proto.execution.ExecutionRequest
 import com.netflix.spinnaker.orca.proto.execution.ExecutionResponse
 import com.netflix.spinnaker.orca.proto.execution.ManualTrigger
+import com.netflix.spinnaker.orca.proto.execution.Notification.NotificationType
+import com.netflix.spinnaker.orca.proto.execution.Notification.newBuilder
 import com.netflix.spinnaker.orca.proto.execution.WaitStage
 import com.nhaarman.mockito_kotlin.argumentCaptor
 import com.nhaarman.mockito_kotlin.mock
@@ -202,6 +204,43 @@ class StartExecutionTest : Spek({
             "bar" to 1337,
             "baz" to true
           ))
+        }
+      }
+    }
+
+    describe("with trigger notifications") {
+      val emailNotification = newBuilder()
+        .setType(NotificationType.email)
+        .setAddress("fzlem@netflix.com")
+        .setCc("reed@netflix.com")
+        .build()
+
+      val trigger = ManualTrigger.newBuilder()
+        .mergeFrom(manualTrigger)
+        .addNotifications(emailNotification)
+        .build()
+
+      val request = ExecutionRequest.newBuilder()
+        .mergeFrom(baseRequest)
+        .setTrigger(trigger.pack())
+        .build()
+
+      on("sending the request") {
+        service.start(request, response)
+      }
+
+      afterGroup(::resetMocks)
+
+      it("parses parameters correctly") {
+        argumentCaptor<Execution>().apply {
+          verify(launcher).start(capture())
+          (firstValue.trigger["notifications"] as List<Map<String, String>>).apply {
+            size shouldMatch equalTo(1)
+            first()["type"] shouldMatch equalTo("email")
+            first()["address"] shouldMatch equalTo(emailNotification.address)
+            first()["cc"] shouldMatch equalTo(emailNotification.cc)
+            first()["when"] as List<String> shouldMatch equalTo(listOf("pipeline.complete", "pipeline.failed"))
+          }
         }
       }
     }

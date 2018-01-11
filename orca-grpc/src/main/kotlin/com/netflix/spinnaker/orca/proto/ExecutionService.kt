@@ -70,7 +70,14 @@ class ExecutionService(
             "user" to trigger.user,
             "parameters" to trigger.parametersMap.unpackValues(),
             "correlationId" to trigger.correlationId,
-            "notifications" to trigger.notificationsMap
+            "notifications" to trigger.notificationsList.map {
+              mapOf(
+                "type" to it.type.name,
+                "address" to it.address,
+                "cc" to it.cc,
+                "when" to listOf("pipeline.complete", "pipeline.failed")
+              )
+            }
           )
         }
       }

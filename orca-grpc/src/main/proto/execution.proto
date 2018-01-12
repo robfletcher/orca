@@ -6,6 +6,8 @@ option java_multiple_files = true;
 option java_package = "com.netflix.spinnaker.orca.proto.execution";
 
 import "google/protobuf/any.proto";
+import "stages.proto";
+import "triggers.proto";
 
 service ExecutionService {
   rpc start (ExecutionRequest) returns (ExecutionResponse);
@@ -15,8 +17,9 @@ message ExecutionRequest {
   string id = 1;
   string application = 2;
   string name = 3;
-  google.protobuf.Any trigger = 4;
-  repeated google.protobuf.Any stages = 5;
+
+  Trigger trigger = 4;
+  repeated StageSpec stages = 5;
 }
 
 message ExecutionResponse {

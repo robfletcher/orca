@@ -24,12 +24,9 @@ import com.natpryce.hamkrest.isEmpty
 import com.natpryce.hamkrest.should.shouldMatch
 import com.netflix.spinnaker.orca.pipeline.ExecutionLauncher
 import com.netflix.spinnaker.orca.pipeline.model.Execution
-import com.netflix.spinnaker.orca.proto.execution.ExecutionRequest
-import com.netflix.spinnaker.orca.proto.execution.ExecutionResponse
-import com.netflix.spinnaker.orca.proto.execution.ManualTrigger
+import com.netflix.spinnaker.orca.proto.execution.*
 import com.netflix.spinnaker.orca.proto.execution.Notification.NotificationType
 import com.netflix.spinnaker.orca.proto.execution.Notification.newBuilder
-import com.netflix.spinnaker.orca.proto.execution.WaitStage
 import com.nhaarman.mockito_kotlin.argumentCaptor
 import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.reset
@@ -47,34 +44,39 @@ class StartExecutionTest : Spek({
   val service = ExecutionService(launcher)
   fun resetMocks() = reset(launcher)
 
-  val waitStage = WaitStage.newBuilder()
+  val waitStage = StageSpec.newBuilder()
     .setName("wait")
-    .setWaitTime(Duration.newBuilder().setSeconds(30).build())
+    .setSpec(WaitStageSpec.newBuilder()
+      .setWaitTime(Duration.newBuilder().setSeconds(30).build())
+      .build()
+      .pack()
+    )
     .build()
 
-  val manualTrigger = ManualTrigger.newBuilder()
+  val manualTrigger = Trigger.newBuilder()
     .setUser("fzlem@netflix.com")
+    .setSpec(ManualTrigger.newBuilder().build().pack())
     .build()
 
   val baseRequest = ExecutionRequest.newBuilder()
     .setApplication("orca")
     .setName("Test Pipeline")
     .setId(UUID.randomUUID().toString())
-    .setTrigger(manualTrigger.pack())
+    .setTrigger(manualTrigger)
     .build()
 
   val response = StreamRecorder.create<ExecutionResponse>()
 
   describe("starting an execution") {
     describe("with a single stage") {
-      val stage = WaitStage.newBuilder()
+      val stage = StageSpec.newBuilder()
         .mergeFrom(waitStage)
         .setRef("1")
         .build()
 
       val request = ExecutionRequest.newBuilder()
         .mergeFrom(baseRequest)
-        .addStages(stage.pack())
+        .addStages(stage)
         .build()
 
       on("sending the request") {
@@ -114,7 +116,7 @@ class StartExecutionTest : Spek({
               name shouldMatch equalTo(stage.name)
               refId shouldMatch equalTo(stage.ref)
               requisiteStageRefIds shouldMatch isEmpty
-              context["waitTime"] as Long shouldMatch equalTo(stage.waitTime.seconds)
+              context["waitTime"] as Long shouldMatch equalTo(stage.spec.unpack<WaitStageSpec>().waitTime.seconds)
             }
           }
         }
@@ -132,24 +134,24 @@ class StartExecutionTest : Spek({
     }
 
     describe("with dependent stages") {
-      val stage1 = WaitStage.newBuilder()
+      val stage1 = StageSpec.newBuilder()
         .mergeFrom(waitStage)
         .setRef("1")
         .build()
 
-      val stage2 = WaitStage.newBuilder()
+      val stage2 = StageSpec.newBuilder()
         .mergeFrom(waitStage)
         .setRef("2")
         .addDependsOn("1")
         .build()
 
-      val stage3 = WaitStage.newBuilder()
+      val stage3 = StageSpec.newBuilder()
         .mergeFrom(waitStage)
         .setRef("3")
         .addDependsOn("1")
         .build()
 
-      val stage4 = WaitStage.newBuilder()
+      val stage4 = StageSpec.newBuilder()
         .mergeFrom(waitStage)
         .setRef("4")
         .addAllDependsOn(listOf("2", "3"))
@@ -157,10 +159,10 @@ class StartExecutionTest : Spek({
 
       val request = ExecutionRequest.newBuilder()
         .mergeFrom(baseRequest)
-        .addStages(stage1.pack())
-        .addStages(stage2.pack())
-        .addStages(stage3.pack())
-        .addStages(stage4.pack())
+        .addStages(stage1)
+        .addStages(stage2)
+        .addStages(stage3)
+        .addStages(stage4)
         .build()
 
       on("sending the request") {
@@ -186,7 +188,7 @@ class StartExecutionTest : Spek({
     }
 
     describe("with trigger parameters") {
-      val trigger = ManualTrigger.newBuilder()
+      val trigger = Trigger.newBuilder()
         .mergeFrom(manualTrigger)
         .apply {
           parametersBuilder
@@ -198,7 +200,7 @@ class StartExecutionTest : Spek({
 
       val request = ExecutionRequest.newBuilder()
         .mergeFrom(baseRequest)
-        .setTrigger(trigger.pack())
+        .setTrigger(trigger)
         .build()
 
       on("sending the request") {
@@ -226,14 +228,14 @@ class StartExecutionTest : Spek({
         .setCc("reed@netflix.com")
         .build()
 
-      val trigger = ManualTrigger.newBuilder()
+      val trigger = Trigger.newBuilder()
         .mergeFrom(manualTrigger)
         .addNotifications(emailNotification)
         .build()
 
       val request = ExecutionRequest.newBuilder()
         .mergeFrom(baseRequest)
-        .setTrigger(trigger.pack())
+        .setTrigger(trigger)
         .build()
 
       on("sending the request") {

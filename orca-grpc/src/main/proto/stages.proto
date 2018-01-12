@@ -5,11 +5,72 @@ package spinnaker;
 option java_multiple_files = true;
 option java_package = "com.netflix.spinnaker.orca.proto.execution";
 
+import "google/protobuf/any.proto";
 import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
 
-message WaitStage {
+message StageSpec {
   string name = 1;
   string ref = 2;
   repeated string dependsOn = 3;
-  google.protobuf.Duration waitTime = 4;
+  string comments = 4;
+  google.protobuf.Any spec = 5;
+}
+
+message WaitStageSpec {
+  google.protobuf.Duration waitTime = 1;
+}
+
+message DeployStageSpec {
+  repeated ClusterSpec clusters = 1;
+
+  message ClusterSpec {
+    string cloudProvider = 1;
+    string account = 2;
+    Moniker moniker = 3;
+    string strategy = 4;
+
+    Capacity capacity = 10;
+    bool useSourceCapacity = 11;
+    repeated string loadBalancers = 12;
+    repeated string securityGroups = 13;
+
+    map<string, string> tags = 20;
+    google.protobuf.Struct entityTags = 21;
+
+    google.protobuf.Any providerSpec = 100;
+
+    message Ec2ClusterSpec {
+      google.protobuf.Struct availabilityZones = 1;
+      google.protobuf.Duration cooldown = 2;
+      bool copySourceCustomBlockDeviceMappings = 3;
+      bool ebsOptimized = 4;
+      repeated string enabledMetrics = 5;
+      google.protobuf.Duration healthCheckGracePeriod = 6;
+      string healthCheckType = 7;
+      string iamRole = 8;
+      bool instanceMonitoring = 9;
+      string instanceType = 10;
+      string keyPair = 11;
+      string subnetType = 12;
+      repeated string suspendedProcesses = 13;
+      repeated string targetGroups = 14;
+      uint32 targetHealthyDeployPercentage = 15;
+      repeated string terminationPolicies = 16;
+      bool useAmiBlockDeviceMappings = 17;
+    }
+
+    message Capacity {
+      int32 min = 1;
+      int32 max = 2;
+      int32 desired = 3;
+    }
+
+    message Moniker {
+      string app = 1;
+      string stack = 2;
+      string detail = 3;
+      string cluster = 4;
+    }
+  }
 }

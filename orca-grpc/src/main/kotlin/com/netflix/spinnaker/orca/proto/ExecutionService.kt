@@ -42,8 +42,8 @@ class ExecutionService(
     execution.name = request.name
     execution.trigger.putAll(convertTrigger(request))
     request.stagesList.forEach { stage ->
-      convertStage(stage).let { (type, name, context) ->
-        execution.stages.add(Stage(execution, type, name, context))
+      convertStage(stage).let { it ->
+        execution.stages.add(it)
       }
     }
 
@@ -59,29 +59,29 @@ class ExecutionService(
       }
   }
 
-  private fun convertTrigger(request: ExecutionRequest): Map<String, Any> =
-    when {
-      request.trigger.isA<ManualTrigger>() -> {
-        request.trigger.unpack<ManualTrigger>().let { trigger ->
-          mapOf(
-            "type" to "manual",
-            "user" to trigger.user,
-            "parameters" to trigger.parameters.fieldsMap.mapValues { (_, value) -> value.unpackValue() },
-            "correlationId" to trigger.correlationId,
-            "notifications" to trigger.notificationsList.map {
-              mapOf(
-                "type" to it.type.name,
-                "address" to it.address,
-                "cc" to it.cc,
-                "when" to listOf("pipeline.complete", "pipeline.failed")
-              )
-            }
-          )
-        }
-      }
-      else ->
-        TODO("Trigger type ${request.trigger.typeUrl} is not yet supported")
+  private fun convertTrigger(request: ExecutionRequest): Map<String, Any> {
+    val trigger = mutableMapOf<String, Any>()
+    trigger["user"] = request.trigger.user
+    trigger["parameters"] = request.trigger.parameters.fieldsMap.mapValues { (_, value) -> value.unpackValue() }
+    trigger["notifications"] = request.trigger.notificationsList.map {
+      mapOf(
+        "type" to it.type.name,
+        "address" to it.address,
+        "cc" to it.cc,
+        "when" to listOf("pipeline.complete", "pipeline.failed")
+      )
     }
+    when {
+      request.trigger.spec.isA<ManualTrigger>() ->
+        request.trigger.spec.unpack<ManualTrigger>().run {
+          trigger["type"] = "manual"
+          trigger["correlationId"] = correlationId
+        }
+      else ->
+        TODO("Trigger type ${request.trigger.spec.typeUrl} is not yet supported")
+    }
+    return trigger
+  }
 
   private fun Value.unpackValue(): Any? =
     @Suppress("IMPLICIT_CAST_TO_ANY")
@@ -95,16 +95,19 @@ class ExecutionService(
       Value.KindCase.KIND_NOT_SET -> throw IllegalStateException("Value type not set")
     }
 
-  private fun convertStage(stage: com.google.protobuf.Any): Triple<String, String, Map<String, Any>> =
-    when {
-      stage.isA<WaitStage>() -> stage.unpack<WaitStage>().run {
-        Triple("wait", name, mapOf(
-          "waitTime" to waitTime.seconds,
-          "refId" to ref,
-          "requisiteStageRefIds" to dependsOnList
-        ))
+  private fun convertStage(stageSpec: StageSpec): Stage =
+    Stage().also { stage ->
+      stage.name = stageSpec.name
+      stage.refId = stageSpec.ref
+      stage.requisiteStageRefIds = stageSpec.dependsOnList
+      stage.context["comments"] = stageSpec.comments
+      when {
+        stageSpec.spec.isA<WaitStageSpec>() -> stageSpec.spec.unpack<WaitStageSpec>().run {
+          stage.type = "wait"
+          stage.context["waitTime"] = waitTime.seconds
+        }
+        else ->
+          TODO("Stage type ${stageSpec.spec.typeUrl} is not yet supported")
       }
-      else ->
-        TODO("Stage type ${stage.typeUrl} is not yet supported")
     }
 }

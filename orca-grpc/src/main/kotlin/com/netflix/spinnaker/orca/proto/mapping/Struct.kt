@@ -19,7 +19,7 @@ package com.netflix.spinnaker.orca.proto.mapping
 import com.google.protobuf.Struct
 import com.google.protobuf.Value
 
-fun Struct.unpack() =
+fun Struct.unpack(): Map<String, Any?> =
   fieldsMap.mapValues { (_, value) ->
     value.unpack()
   }

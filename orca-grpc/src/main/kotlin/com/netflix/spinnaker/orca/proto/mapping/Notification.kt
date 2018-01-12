@@ -14,18 +14,14 @@
  * limitations under the License.
  */
 
-apply plugin: "com.google.protobuf"
+package com.netflix.spinnaker.orca.proto.mapping
 
-apply from: "$rootDir/gradle/kotlin.gradle"
-apply from: "$rootDir/gradle/spek.gradle"
-apply from: "$rootDir/gradle/grpc.gradle"
+import com.netflix.spinnaker.orca.proto.execution.Notification
 
-repositories {
-  jcenter()
-}
-
-dependencies {
-  compile project(":orca-core")
-
-  testCompile "org.assertj:assertj-core:3.9.0"
-}
+fun Notification.unpack(): Map<String, Any> =
+  mapOf(
+    "type" to type.name,
+    "address" to address,
+    "cc" to cc,
+    "when" to listOf("pipeline.complete", "pipeline.failed")
+  )

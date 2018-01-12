@@ -16,12 +16,25 @@
 
 package com.netflix.spinnaker.orca.proto.mapping
 
-import com.netflix.spinnaker.orca.proto.execution.Notification
+import com.google.protobuf.Duration
+import com.google.protobuf.Message
+import com.google.protobuf.Struct
 
-fun Notification.unpack() =
-  mapOf(
-    "type" to type.name,
-    "address" to address,
-    "cc" to cc,
-    "when" to listOf("pipeline.complete", "pipeline.failed")
-  )
+/**
+ * Generic unpack that will turn any [Message] into a [Map].
+ */
+fun Message.unpack(): Map<String, Any> =
+  mutableMapOf<String, Any>().also(this::unpackInto)
+
+/**
+ * Generic unpack that will turn any [Message] into a [Map].
+ */
+fun Message.unpackInto(model: MutableMap<String, Any>) {
+  allFields.forEach { (descriptor, value) ->
+    model[descriptor.jsonName] = when (value) {
+      is Duration -> value.seconds.toInt()
+      is Struct -> value.unpack()
+      else -> value
+    }
+  }
+}

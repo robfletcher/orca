@@ -21,7 +21,7 @@ import com.netflix.spinnaker.orca.proto.execution.Trigger
 import com.netflix.spinnaker.orca.proto.isA
 import com.netflix.spinnaker.orca.proto.unpack
 
-fun Trigger.unpack() =
+fun Trigger.unpack(): MutableMap<String, Any> =
   mutableMapOf<String, Any>().also { model ->
     model["user"] = user
     model["parameters"] = parameters.unpack()

@@ -36,7 +36,7 @@ class ExecutionService(
   ) {
     log.info("Received execution request… $request")
 
-    val execution = unpack(request)
+    val execution = request.unpack()
 
     launcher.start(execution)
 

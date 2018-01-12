@@ -21,19 +21,19 @@ import com.netflix.spinnaker.orca.proto.execution.Trigger
 import com.netflix.spinnaker.orca.proto.isA
 import com.netflix.spinnaker.orca.proto.unpack
 
-fun unpack(proto: Trigger) =
+fun Trigger.unpack() =
   mutableMapOf<String, Any>().also { model ->
-    model["user"] = proto.user
-    model["parameters"] = unpack(proto.parameters)
-    model["notifications"] = proto.notificationsList.map { unpack(it) }
+    model["user"] = user
+    model["parameters"] = parameters.unpack()
+    model["notifications"] = notificationsList.map { it.unpack() }
     when {
-      proto.spec.isA<ManualTrigger>() ->
-        proto.spec.unpack<ManualTrigger>().run {
+      spec.isA<ManualTrigger>() ->
+        spec.unpack<ManualTrigger>().run {
           model["type"] = "manual"
           model["correlationId"] = correlationId
         }
       else ->
-        TODO("Trigger type ${proto.spec.typeUrl} is not yet supported")
+        TODO("Trigger type ${spec.typeUrl} is not yet supported")
     }
     return model
   }

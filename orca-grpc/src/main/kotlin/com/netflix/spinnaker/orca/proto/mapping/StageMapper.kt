@@ -22,18 +22,18 @@ import com.netflix.spinnaker.orca.proto.execution.WaitStageSpec
 import com.netflix.spinnaker.orca.proto.isA
 import com.netflix.spinnaker.orca.proto.unpack
 
-fun unpack(proto: StageSpec) =
+fun StageSpec.unpack() =
   Stage().also { stage ->
-    stage.name = proto.name
-    stage.refId = proto.ref
-    stage.requisiteStageRefIds = proto.dependsOnList
-    stage.context["comments"] = proto.comments
+    stage.name = name
+    stage.refId = ref
+    stage.requisiteStageRefIds = dependsOnList
+    stage.context["comments"] = comments
     when {
-      proto.spec.isA<WaitStageSpec>() -> proto.spec.unpack<WaitStageSpec>().run {
+      spec.isA<WaitStageSpec>() -> spec.unpack<WaitStageSpec>().run {
         stage.type = "wait"
         stage.context["waitTime"] = waitTime.seconds
       }
       else ->
-        TODO("Stage type ${proto.spec.typeUrl} is not yet supported")
+        TODO("Stage type ${spec.typeUrl} is not yet supported")
     }
   }

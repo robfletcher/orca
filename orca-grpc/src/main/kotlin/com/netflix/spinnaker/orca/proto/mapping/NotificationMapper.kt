@@ -18,10 +18,10 @@ package com.netflix.spinnaker.orca.proto.mapping
 
 import com.netflix.spinnaker.orca.proto.execution.Notification
 
-fun unpack(proto: Notification) =
+fun Notification.unpack() =
   mapOf(
-    "type" to proto.type.name,
-    "address" to proto.address,
-    "cc" to proto.cc,
+    "type" to type.name,
+    "address" to address,
+    "cc" to cc,
     "when" to listOf("pipeline.complete", "pipeline.failed")
   )

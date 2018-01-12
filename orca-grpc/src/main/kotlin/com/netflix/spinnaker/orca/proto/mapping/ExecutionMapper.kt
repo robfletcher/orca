@@ -20,13 +20,13 @@ import com.netflix.spinnaker.orca.pipeline.model.Execution
 import com.netflix.spinnaker.orca.pipeline.model.Execution.ExecutionType.PIPELINE
 import com.netflix.spinnaker.orca.proto.execution.ExecutionRequest
 
-fun unpack(proto: ExecutionRequest): Execution =
-  Execution(PIPELINE, proto.application)
+fun ExecutionRequest.unpack(): Execution =
+  Execution(PIPELINE, application)
     .also { model ->
-      model.pipelineConfigId = proto.id
-      model.name = proto.name
-      model.trigger.putAll(unpack(proto.trigger))
-      proto.stagesList.forEach { stage ->
-        model.stages.add(unpack(stage))
+      model.pipelineConfigId = id
+      model.name = name
+      model.trigger.putAll(trigger.unpack())
+      stagesList.forEach { stage ->
+        model.stages.add(stage.unpack())
       }
     }

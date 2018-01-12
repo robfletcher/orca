@@ -20,7 +20,7 @@ import com.netflix.spinnaker.orca.pipeline.ExecutionLauncher
 import com.netflix.spinnaker.orca.proto.execution.ExecutionRequest
 import com.netflix.spinnaker.orca.proto.execution.ExecutionResponse
 import com.netflix.spinnaker.orca.proto.execution.ExecutionServiceGrpc
-import com.netflix.spinnaker.orca.proto.mapping.ExecutionMapper
+import com.netflix.spinnaker.orca.proto.mapping.unpack
 import io.grpc.stub.StreamObserver
 import org.slf4j.LoggerFactory
 
@@ -29,7 +29,6 @@ class ExecutionService(
 ) : ExecutionServiceGrpc.ExecutionServiceImplBase() {
 
   private val log = LoggerFactory.getLogger(javaClass)
-  private val executionMapper = ExecutionMapper()
 
   override fun start(
     request: ExecutionRequest,
@@ -37,7 +36,7 @@ class ExecutionService(
   ) {
     log.info("Received execution request… $request")
 
-    val execution = executionMapper.unpack(request)
+    val execution = unpack(request)
 
     launcher.start(execution)
 

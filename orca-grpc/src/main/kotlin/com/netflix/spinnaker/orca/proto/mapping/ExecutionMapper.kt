@@ -20,20 +20,13 @@ import com.netflix.spinnaker.orca.pipeline.model.Execution
 import com.netflix.spinnaker.orca.pipeline.model.Execution.ExecutionType.PIPELINE
 import com.netflix.spinnaker.orca.proto.execution.ExecutionRequest
 
-class ExecutionMapper : Mapper<ExecutionRequest, Execution> {
-
-  private val triggerMapper = TriggerMapper()
-  private val stageMapper = StageMapper()
-
-  override fun unpack(proto: ExecutionRequest): Execution =
-    Execution(PIPELINE, proto.application)
-      .also { model ->
-        model.pipelineConfigId = proto.id
-        model.name = proto.name
-        model.trigger.putAll(triggerMapper.unpack(proto.trigger))
-        proto.stagesList.forEach { stage ->
-          model.stages.add(stageMapper.unpack(stage))
-        }
+fun unpack(proto: ExecutionRequest): Execution =
+  Execution(PIPELINE, proto.application)
+    .also { model ->
+      model.pipelineConfigId = proto.id
+      model.name = proto.name
+      model.trigger.putAll(unpack(proto.trigger))
+      proto.stagesList.forEach { stage ->
+        model.stages.add(unpack(stage))
       }
-}
-
+    }

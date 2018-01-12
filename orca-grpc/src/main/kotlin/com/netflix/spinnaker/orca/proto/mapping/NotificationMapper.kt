@@ -18,12 +18,10 @@ package com.netflix.spinnaker.orca.proto.mapping
 
 import com.netflix.spinnaker.orca.proto.execution.Notification
 
-class NotificationMapper : Mapper<Notification, Map<String, Any?>> {
-  override fun unpack(proto: Notification) =
-    mapOf(
-      "type" to proto.type.name,
-      "address" to proto.address,
-      "cc" to proto.cc,
-      "when" to listOf("pipeline.complete", "pipeline.failed")
-    )
-}
+fun unpack(proto: Notification) =
+  mapOf(
+    "type" to proto.type.name,
+    "address" to proto.address,
+    "cc" to proto.cc,
+    "when" to listOf("pipeline.complete", "pipeline.failed")
+  )

@@ -21,25 +21,19 @@ import com.netflix.spinnaker.orca.proto.execution.Trigger
 import com.netflix.spinnaker.orca.proto.isA
 import com.netflix.spinnaker.orca.proto.unpack
 
-class TriggerMapper : Mapper<Trigger, Map<String, Any>> {
-
-  private val structMapper = StructMapper()
-  private val notificationMapper = NotificationMapper()
-
-  override fun unpack(proto: Trigger) =
-    mutableMapOf<String, Any>().also { model ->
-      model["user"] = proto.user
-      model["parameters"] = structMapper.unpack(proto.parameters)
-      model["notifications"] = proto.notificationsList.map(notificationMapper::unpack)
-      when {
-        proto.spec.isA<ManualTrigger>() ->
-          proto.spec.unpack<ManualTrigger>().run {
-            model["type"] = "manual"
-            model["correlationId"] = correlationId
-          }
-        else ->
-          TODO("Trigger type ${proto.spec.typeUrl} is not yet supported")
-      }
-      return model
+fun unpack(proto: Trigger) =
+  mutableMapOf<String, Any>().also { model ->
+    model["user"] = proto.user
+    model["parameters"] = unpack(proto.parameters)
+    model["notifications"] = proto.notificationsList.map { unpack(it) }
+    when {
+      proto.spec.isA<ManualTrigger>() ->
+        proto.spec.unpack<ManualTrigger>().run {
+          model["type"] = "manual"
+          model["correlationId"] = correlationId
+        }
+      else ->
+        TODO("Trigger type ${proto.spec.typeUrl} is not yet supported")
     }
-}
+    return model
+  }

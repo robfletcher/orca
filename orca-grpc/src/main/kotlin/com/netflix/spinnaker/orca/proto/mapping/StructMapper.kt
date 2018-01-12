@@ -19,23 +19,19 @@ package com.netflix.spinnaker.orca.proto.mapping
 import com.google.protobuf.Struct
 import com.google.protobuf.Value
 
-class StructMapper : Mapper<Struct, Map<String, Any?>> {
-
-  override fun unpack(proto: Struct) =
-    proto.fieldsMap.mapValues { (_, value) ->
-      unpack(value)
-    }
-
-  private fun unpack(value: Value): Any? {
-    return (@Suppress("IMPLICIT_CAST_TO_ANY", "WHEN_ENUM_CAN_BE_NULL_IN_JAVA")
-    when (value.kindCase) {
-      Value.KindCase.STRING_VALUE -> value.stringValue
-      Value.KindCase.NUMBER_VALUE -> value.numberValue
-      Value.KindCase.BOOL_VALUE -> value.boolValue
-      Value.KindCase.NULL_VALUE -> null
-      Value.KindCase.STRUCT_VALUE -> unpack(value.structValue)
-      Value.KindCase.LIST_VALUE -> value.listValue.valuesList.map(this::unpack)
-      Value.KindCase.KIND_NOT_SET -> throw IllegalStateException("Value type not set")
-    })
+fun unpack(proto: Struct) =
+  proto.fieldsMap.mapValues { (_, value) ->
+    unpack(value)
   }
-}
+
+fun unpack(value: Value): Any? =
+  (@Suppress("IMPLICIT_CAST_TO_ANY", "WHEN_ENUM_CAN_BE_NULL_IN_JAVA")
+  when (value.kindCase) {
+    Value.KindCase.STRING_VALUE -> value.stringValue
+    Value.KindCase.NUMBER_VALUE -> value.numberValue
+    Value.KindCase.BOOL_VALUE -> value.boolValue
+    Value.KindCase.NULL_VALUE -> null
+    Value.KindCase.STRUCT_VALUE -> unpack(value.structValue)
+    Value.KindCase.LIST_VALUE -> value.listValue.valuesList.map(::unpack)
+    Value.KindCase.KIND_NOT_SET -> throw IllegalStateException("Value type not set")
+  })

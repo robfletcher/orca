@@ -18,10 +18,8 @@ package com.netflix.spinnaker.orca.proto
 
 import com.google.protobuf.Duration
 import com.google.protobuf.Value
-import com.natpryce.hamkrest.equalTo
-import com.natpryce.hamkrest.hasSize
-import com.natpryce.hamkrest.isEmpty
-import com.natpryce.hamkrest.should.shouldMatch
+import com.netflix.spinnaker.assertj.hasEntry
+import com.netflix.spinnaker.assertj.softly
 import com.netflix.spinnaker.orca.pipeline.ExecutionLauncher
 import com.netflix.spinnaker.orca.pipeline.model.Execution
 import com.netflix.spinnaker.orca.proto.execution.*
@@ -32,6 +30,7 @@ import com.nhaarman.mockito_kotlin.mock
 import com.nhaarman.mockito_kotlin.reset
 import com.nhaarman.mockito_kotlin.verify
 import io.grpc.internal.testing.StreamRecorder
+import org.assertj.core.api.Assertions.assertThat
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
@@ -88,10 +87,12 @@ class StartExecutionTest : Spek({
       it("starts a pipeline") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          firstValue.apply {
-            application shouldMatch equalTo(request.application)
-            name shouldMatch equalTo(request.name)
-            pipelineConfigId shouldMatch equalTo(request.id)
+          softly {
+            firstValue.apply {
+              assertThat(application).isEqualTo(request.application)
+              assertThat(name).isEqualTo(request.name)
+              assertThat(pipelineConfigId).isEqualTo(request.id)
+            }
           }
         }
       }
@@ -99,9 +100,11 @@ class StartExecutionTest : Spek({
       it("configures the trigger correctly") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          firstValue.apply {
-            trigger["type"] as String shouldMatch equalTo("manual")
-            trigger["user"] as String shouldMatch equalTo(manualTrigger.user)
+          softly {
+            firstValue.apply {
+              assertThat(trigger["type"]).isEqualTo("manual")
+              assertThat(trigger["user"]).isEqualTo(manualTrigger.user)
+            }
           }
         }
       }
@@ -109,14 +112,16 @@ class StartExecutionTest : Spek({
       it("configures the stage correctly") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          firstValue.apply {
-            stages shouldMatch hasSize(equalTo(1))
-            stages.first().apply {
-              type shouldMatch equalTo("wait")
-              name shouldMatch equalTo(stage.name)
-              refId shouldMatch equalTo(stage.ref)
-              requisiteStageRefIds shouldMatch isEmpty
-              context["waitTime"] as Long shouldMatch equalTo(stage.spec.unpack<WaitStageSpec>().waitTime.seconds)
+          softly {
+            firstValue.apply {
+              assertThat(stages).hasSize(1)
+              stages.first().apply {
+                assertThat(type).isEqualTo("wait")
+                assertThat(name).isEqualTo(stage.name)
+                assertThat(refId).isEqualTo(stage.ref)
+                assertThat(requisiteStageRefIds).isEmpty()
+                assertThat(context["waitTime"]).isEqualTo(stage.spec.unpack<WaitStageSpec>().waitTime.seconds)
+              }
             }
           }
         }
@@ -128,8 +133,7 @@ class StartExecutionTest : Spek({
           firstValue.id
         }
 
-        response.values.size shouldMatch equalTo(1)
-        response.values.first().id shouldMatch equalTo(id)
+        assertThat(response.values).extracting("id").isEqualTo(listOf(id))
       }
     }
 
@@ -174,12 +178,14 @@ class StartExecutionTest : Spek({
       it("configures the stage dependencies correctly") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          firstValue.apply {
-            stages shouldMatch hasSize(equalTo(4))
-            listOf(stage1, stage2, stage3, stage4).forEach {
-              stageByRef(it.ref).apply {
-                refId shouldMatch equalTo(it.ref)
-                requisiteStageRefIds.toSet() shouldMatch equalTo(it.dependsOnList.toSet())
+          firstValue.let { execution ->
+            softly {
+              assertThat(execution.stages).hasSize(4)
+              listOf(stage1, stage2, stage3, stage4).forEach {
+                execution.stageByRef(it.ref).apply {
+                  assertThat(refId).isEqualTo(it.ref)
+                  assertThat(requisiteStageRefIds).isEqualTo(it.dependsOnList.toSet())
+                }
               }
             }
           }
@@ -212,7 +218,7 @@ class StartExecutionTest : Spek({
       it("parses parameters correctly") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          firstValue.trigger["parameters"] as Map<String, Any> shouldMatch equalTo(mapOf(
+          assertThat(firstValue.trigger["parameters"]).isEqualTo(mapOf(
             "foo" to "covfefe",
             "bar" to 1337.0,
             "baz" to true
@@ -247,12 +253,15 @@ class StartExecutionTest : Spek({
       it("parses parameters correctly") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          (firstValue.trigger["notifications"] as List<Map<String, String>>).apply {
-            size shouldMatch equalTo(1)
-            first()["type"] shouldMatch equalTo("email")
-            first()["address"] shouldMatch equalTo(emailNotification.address)
-            first()["cc"] shouldMatch equalTo(emailNotification.cc)
-            first()["when"] as List<String> shouldMatch equalTo(listOf("pipeline.complete", "pipeline.failed"))
+          (firstValue.trigger["notifications"] as List<Map<String, String>>).let { notifications ->
+            softly {
+              assertThat(notifications).hasSize(1)
+              assertThat(notifications.first())
+                .hasEntry("type") { isEqualTo("email") }
+                .hasEntry("address") { isEqualTo(emailNotification.address) }
+                .hasEntry("cc") { isEqualTo(emailNotification.cc) }
+                .hasEntry("when") { isEqualTo(listOf("pipeline.complete", "pipeline.failed")) }
+            }
           }
         }
       }

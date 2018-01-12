@@ -40,9 +40,9 @@ class ExecutionService(
     val execution = Execution(PIPELINE, request.application)
     execution.pipelineConfigId = request.id
     execution.name = request.name
-    execution.trigger.putAll(convertTrigger(request))
+    execution.trigger.putAll(unpackTrigger(request))
     request.stagesList.forEach { stage ->
-      convertStage(stage).let { it ->
+      unpackStage(stage).let { it ->
         execution.stages.add(it)
       }
     }
@@ -59,7 +59,7 @@ class ExecutionService(
       }
   }
 
-  private fun convertTrigger(request: ExecutionRequest): Map<String, Any> {
+  private fun unpackTrigger(request: ExecutionRequest): Map<String, Any> {
     val trigger = mutableMapOf<String, Any>()
     trigger["user"] = request.trigger.user
     trigger["parameters"] = request.trigger.parameters.fieldsMap.mapValues { (_, value) -> value.unpackValue() }
@@ -95,7 +95,7 @@ class ExecutionService(
       Value.KindCase.KIND_NOT_SET -> throw IllegalStateException("Value type not set")
     }
 
-  private fun convertStage(stageSpec: StageSpec): Stage =
+  private fun unpackStage(stageSpec: StageSpec): Stage =
     Stage().also { stage ->
       stage.name = stageSpec.name
       stage.refId = stageSpec.ref

@@ -16,19 +16,52 @@
 
 package com.netflix.spinnaker.assertj
 
-import org.assertj.core.api.AbstractMapAssert
-import org.assertj.core.api.AbstractObjectAssert
-import org.assertj.core.api.Assertions
-import org.assertj.core.api.SoftAssertions
+import org.assertj.core.api.*
+import org.assertj.core.api.Assertions.assertThat
+import java.lang.reflect.Field
+import kotlin.reflect.KFunction1
+import kotlin.reflect.KProperty1
 
-fun <SELF : AbstractMapAssert<SELF, ACTUAL, K, V>, ACTUAL : Map<K, V>, K, V> AbstractMapAssert<SELF, ACTUAL, K, V>.hasEntry(key: K, block: AbstractObjectAssert<*, V>.() -> Unit): AbstractMapAssert<SELF, ACTUAL, K, V> =
-  hasEntrySatisfying(key) {
-    @Suppress("UNCHECKED_CAST")
-    (Assertions.assertThat(it)
-      .`as`(key.toString()) as AbstractObjectAssert<*, V>)
-      .apply(block)
-  }
+private val actualField: Field = AbstractAssert::class.java
+  .getDeclaredField("actual")
+  .apply { isAccessible = true }
 
-fun softly(block: SoftAssertions.() -> Unit) {
-  SoftAssertions.assertSoftly(block)
+@Suppress("UNCHECKED_CAST")
+private val <ACTUAL>
+  Assert<*, ACTUAL>.actual: ACTUAL
+  get() = actualField.get(this) as ACTUAL
+
+/**
+ * Alias for [Assert#isInstanceOf] using Kotlin's reified generics.
+ */
+inline fun <reified T> Assert<*, *>.isA(): Assert<*, *> =
+  isInstanceOf(T::class.java)
+
+fun Assert<*, *>.asInteger() = run {
+  isA<Int>()
+  IntegerAssert(actual as Int)
 }
+
+fun Assert<*, *>.asMap() = run {
+  isA<Map<*, *>>()
+  MapAssert(actual as Map<Any, Any>)
+}
+
+fun Assert<*, *>.asIterable() = run {
+  isA<Iterable<*>>()
+  IterableAssert(actual as Iterable<Any>)
+}
+
+fun <SELF : Assert<*, ACTUAL>, ACTUAL, PROP>
+  SELF.get(
+  getter: KFunction1<ACTUAL, PROP>
+): Assert<*, PROP> =
+  assertThat(getter.invoke(actual))
+    .`as`(getter.name) as Assert<*, PROP>
+
+fun <SELF : Assert<*, ACTUAL>, ACTUAL, PROP>
+  SELF.get(
+  getter: KProperty1<ACTUAL, PROP>
+): Assert<*, PROP> =
+  assertThat(getter.get(actual))
+    .`as`(getter.name) as Assert<*, PROP>

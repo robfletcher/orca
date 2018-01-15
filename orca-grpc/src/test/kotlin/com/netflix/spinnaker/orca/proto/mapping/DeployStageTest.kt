@@ -18,13 +18,12 @@ package com.netflix.spinnaker.orca.proto.mapping
 
 import com.google.protobuf.ListValue
 import com.google.protobuf.Value
-import com.netflix.spinnaker.assertj.hasEntry
-import com.netflix.spinnaker.assertj.softly
 import com.netflix.spinnaker.orca.proto.execution.DeployStageSpec
 import com.netflix.spinnaker.orca.proto.execution.DeployStageSpec.ClusterSpec.Ec2ClusterSpec
 import com.netflix.spinnaker.orca.proto.execution.StageSpec
 import com.netflix.spinnaker.orca.proto.pack
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.SoftAssertions.assertSoftly
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
@@ -88,7 +87,7 @@ class DeployStageTest : Spek({
 
     it("should unpack common stage values") {
       stage.apply {
-        softly {
+        assertSoftly {
           assertThat(name).isEqualTo("deploy")
           assertThat(type).isEqualTo("deploy")
           assertThat(refId).isEqualTo("3")
@@ -108,54 +107,52 @@ class DeployStageTest : Spek({
         val cluster = clusters.first()
 
         it("should unpack a moniker-compatible cluster name") {
-          softly {
-            assertThat(cluster).hasEntry("moniker") {
-              isEqualTo(mapOf("app" to "covfefe", "stack" to "stack", "detail" to "detail", "cluster" to "covfefe-stack-detail"))
-            }
-            (cluster["moniker"] as Map<String, String>).let { moniker ->
-              assertThat(cluster).hasEntry("application") { isEqualTo(moniker["app"]) }
-              assertThat(cluster).hasEntry("stack") { isEqualTo(moniker["stack"]) }
-              assertThat(cluster).hasEntry("freeFormDetails") { isEqualTo(moniker["detail"]) }
-            }
+          assertSoftly {
+            val moniker = mapOf("app" to "covfefe", "stack" to "stack", "detail" to "detail", "cluster" to "covfefe-stack-detail")
+            assertThat(cluster).containsEntry("moniker", moniker)
+            assertThat(cluster)
+              .containsEntry("application", moniker["app"])
+              .containsEntry("stack", moniker["stack"])
+              .containsEntry("freeFormDetails", moniker["detail"])
           }
         }
 
         it("should unpack non provider-specific cluster details") {
-          softly {
-            assertThat(cluster).hasEntry("cloudProvider") { isEqualTo("aws") }
-            assertThat(cluster).hasEntry("provider") { isEqualTo(cluster["cloudProvider"]) }
-            assertThat(cluster).hasEntry("account") { isEqualTo("test") }
-            assertThat(cluster).hasEntry("strategy") { isEqualTo("highlander") }
-            assertThat(cluster).hasEntry("capacity") { isEqualTo(mapOf("min" to 20, "max" to 100, "desired" to 50)) }
-            assertThat(cluster).hasEntry("useSourceCapacity") { isEqualTo(false) }
-            assertThat(cluster).hasEntry("loadBalancers") { isEqualTo(listOf("covfefe-frontend")) }
-            assertThat(cluster).hasEntry("securityGroups") { isEqualTo(listOf("covfefe-sg", "infra")) }
-            assertThat(cluster).hasEntry("tags") { isEqualTo(emptyMap<String, String>()) }
-            assertThat(cluster).hasEntry("entityTags") { isEqualTo(emptyMap<String, Any>()) }
+          assertSoftly {
+            assertThat(cluster)
+              .containsEntry("cloudProvider", "aws")
+              .containsEntry("provider", cluster["cloudProvider"])
+              .containsEntry("account", "test")
+              .containsEntry("strategy", "highlander")
+              .containsEntry("capacity", mapOf("min" to 20, "max" to 100, "desired" to 50))
+              .containsEntry("useSourceCapacity", false)
+              .containsEntry("loadBalancers", listOf("covfefe-frontend"))
+              .containsEntry("securityGroups", listOf("covfefe-sg", "infra"))
+              .containsEntry("tags", emptyMap<String, String>())
+              .containsEntry("entityTags", emptyMap<String, Any>())
           }
         }
 
         it("should unpack provider-specific cluster details") {
-          softly {
-            assertThat(cluster).hasEntry("availabilityZones") {
-              isEqualTo(mapOf("us-west-2" to listOf("us-west-2a", "us-west-2b", "us-west-2c")))
-            }
-            assertThat(cluster).hasEntry("cooldown") { isEqualTo(30) }
-            assertThat(cluster).hasEntry("copySourceCustomBlockDeviceMappings") { isEqualTo(true) }
-            assertThat(cluster).hasEntry("ebsOptimized") { isEqualTo(true) }
-//            assertThat(cluster).hasEntry("enabledMetrics") { isEqualTo(emptyList<String>()) }
-            assertThat(cluster).hasEntry("healthCheckGracePeriod") { isEqualTo(30) }
-            assertThat(cluster).hasEntry("healthCheckType") { isEqualTo("EC2") }
-            assertThat(cluster).hasEntry("iamRole") { isEqualTo("covfefe") }
-            assertThat(cluster).hasEntry("instanceMonitoring") { isEqualTo(true) }
-            assertThat(cluster).hasEntry("instanceType") { isEqualTo("r3.2xl") }
-            assertThat(cluster).hasEntry("keyPair") { isEqualTo("covfefe_keypair") }
-            assertThat(cluster).hasEntry("subnetType") { isEqualTo("vpc(internal)") }
-//            assertThat(cluster).hasEntry("suspendedProcesses") { isEqualTo(emptyList<String>()) }
-//            assertThat(cluster).hasEntry("targetGroups") { isEqualTo(emptyList<String>()) }
-            assertThat(cluster).hasEntry("targetHealthyDeployPercentage") { isEqualTo(100) }
-//            assertThat(cluster).hasEntry("terminationPolicies") { isEqualTo(emptyList<String>()) }
-            assertThat(cluster).hasEntry("useAmiBlockDeviceMappings") { isEqualTo(true) }
+          assertSoftly {
+            assertThat(cluster)
+              .containsEntry("availabilityZones", mapOf("us-west-2" to listOf("us-west-2a", "us-west-2b", "us-west-2c")))
+              .containsEntry("cooldown", 30)
+              .containsEntry("copySourceCustomBlockDeviceMappings", true)
+              .containsEntry("ebsOptimized", true)
+              //            .containsEntry("enabledMetrics", emptyList<String>())
+              .containsEntry("healthCheckGracePeriod", 30)
+              .containsEntry("healthCheckType", "EC2")
+              .containsEntry("iamRole", "covfefe")
+              .containsEntry("instanceMonitoring", true)
+              .containsEntry("instanceType", "r3.2xl")
+              .containsEntry("keyPair", "covfefe_keypair")
+              .containsEntry("subnetType", "vpc(internal)")
+              //            .containsEntry("suspendedProcesses", emptyList<String>())
+              //            .containsEntry("targetGroups", emptyList<String>())
+              .containsEntry("targetHealthyDeployPercentage", 100)
+              //            .containsEntry("terminationPolicies", emptyList<String>())
+              .containsEntry("useAmiBlockDeviceMappings", true)
           }
         }
       }

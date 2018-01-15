@@ -18,8 +18,7 @@ package com.netflix.spinnaker.orca.proto
 
 import com.google.protobuf.Duration
 import com.google.protobuf.Value
-import com.netflix.spinnaker.assertj.hasEntry
-import com.netflix.spinnaker.assertj.softly
+import com.netflix.spinnaker.assertj.asMap
 import com.netflix.spinnaker.orca.pipeline.ExecutionLauncher
 import com.netflix.spinnaker.orca.pipeline.model.Execution
 import com.netflix.spinnaker.orca.proto.execution.*
@@ -31,6 +30,7 @@ import com.nhaarman.mockito_kotlin.reset
 import com.nhaarman.mockito_kotlin.verify
 import io.grpc.internal.testing.StreamRecorder
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.SoftAssertions.assertSoftly
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
@@ -87,7 +87,7 @@ class StartExecutionTest : Spek({
       it("starts a pipeline") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          softly {
+          assertSoftly {
             firstValue.apply {
               assertThat(application).isEqualTo(request.application)
               assertThat(name).isEqualTo(request.name)
@@ -100,11 +100,10 @@ class StartExecutionTest : Spek({
       it("configures the trigger correctly") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          softly {
-            firstValue.apply {
-              assertThat(trigger["type"]).isEqualTo("manual")
-              assertThat(trigger["user"]).isEqualTo(manualTrigger.user)
-            }
+          assertSoftly {
+            assertThat(firstValue.trigger)
+              .containsEntry("type", "manual")
+              .containsEntry("user", manualTrigger.user)
           }
         }
       }
@@ -112,17 +111,16 @@ class StartExecutionTest : Spek({
       it("configures the stage correctly") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          softly {
-            firstValue.apply {
-              assertThat(stages).hasSize(1)
-              stages.first().apply {
+          assertThat(firstValue.stages).hasSize(1)
+          assertSoftly {
+            firstValue.stages.first()
+              .apply {
                 assertThat(type).isEqualTo("wait")
                 assertThat(name).isEqualTo(stage.name)
                 assertThat(refId).isEqualTo(stage.ref)
-                assertThat(requisiteStageRefIds).isEmpty()
-                assertThat(context["waitTime"]).isEqualTo(stage.spec.unpack<WaitStageSpec>().waitTime.seconds)
+                assertThat(requisiteStageRefIds).containsExactlyInAnyOrderElementsOf(stage.dependsOnList)
+                assertThat(context).containsEntry("waitTime", stage.spec.unpack<WaitStageSpec>().waitTime.seconds)
               }
-            }
           }
         }
       }
@@ -133,7 +131,11 @@ class StartExecutionTest : Spek({
           firstValue.id
         }
 
-        assertThat(response.values).extracting("id").isEqualTo(listOf(id))
+        assertThat(response.values)
+          .hasSize(1)
+          .extracting("id")
+          .first()
+          .isEqualTo(id)
       }
     }
 
@@ -179,12 +181,12 @@ class StartExecutionTest : Spek({
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
           firstValue.let { execution ->
-            softly {
+            assertSoftly {
               assertThat(execution.stages).hasSize(4)
               listOf(stage1, stage2, stage3, stage4).forEach {
                 execution.stageByRef(it.ref).apply {
                   assertThat(refId).isEqualTo(it.ref)
-                  assertThat(requisiteStageRefIds).isEqualTo(it.dependsOnList.toSet())
+                  assertThat(requisiteStageRefIds).containsExactlyInAnyOrderElementsOf(it.dependsOnList)
                 }
               }
             }
@@ -218,11 +220,12 @@ class StartExecutionTest : Spek({
       it("parses parameters correctly") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          assertThat(firstValue.trigger["parameters"]).isEqualTo(mapOf(
-            "foo" to "covfefe",
-            "bar" to 1337.0,
-            "baz" to true
-          ))
+          assertThat(firstValue.trigger["parameters"])
+            .asMap()
+            .hasSize(3)
+            .containsEntry("foo", "covfefe")
+            .containsEntry("bar", 1337.0)
+            .containsEntry("baz", true)
         }
       }
     }
@@ -253,15 +256,16 @@ class StartExecutionTest : Spek({
       it("parses parameters correctly") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          (firstValue.trigger["notifications"] as List<Map<String, String>>).let { notifications ->
-            softly {
-              assertThat(notifications).hasSize(1)
-              assertThat(notifications.first())
-                .hasEntry("type") { isEqualTo("email") }
-                .hasEntry("address") { isEqualTo(emailNotification.address) }
-                .hasEntry("cc") { isEqualTo(emailNotification.cc) }
-                .hasEntry("when") { isEqualTo(listOf("pipeline.complete", "pipeline.failed")) }
-            }
+          assertSoftly {
+            assertThat(firstValue.trigger["notifications"])
+              .asList()
+              .hasSize(1)
+              .first()
+              .asMap()
+              .containsEntry("type", "email")
+              .containsEntry("address", emailNotification.address)
+              .containsEntry("cc", emailNotification.cc)
+              .containsEntry("when", listOf("pipeline.complete", "pipeline.failed"))
           }
         }
       }

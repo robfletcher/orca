@@ -19,6 +19,7 @@ package com.netflix.spinnaker.orca.proto
 import com.google.protobuf.Duration
 import com.google.protobuf.Value
 import com.netflix.spinnaker.assertj.asMap
+import com.netflix.spinnaker.assertj.softly
 import com.netflix.spinnaker.orca.pipeline.ExecutionLauncher
 import com.netflix.spinnaker.orca.pipeline.model.Execution
 import com.netflix.spinnaker.orca.proto.execution.*
@@ -30,7 +31,6 @@ import com.nhaarman.mockito_kotlin.reset
 import com.nhaarman.mockito_kotlin.verify
 import io.grpc.internal.testing.StreamRecorder
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.SoftAssertions.assertSoftly
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
@@ -87,7 +87,7 @@ class StartExecutionTest : Spek({
       it("starts a pipeline") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          assertSoftly {
+          softly {
             firstValue.apply {
               assertThat(application).isEqualTo(request.application)
               assertThat(name).isEqualTo(request.name)
@@ -100,7 +100,7 @@ class StartExecutionTest : Spek({
       it("configures the trigger correctly") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          assertSoftly {
+          softly {
             assertThat(firstValue.trigger)
               .containsEntry("type", "manual")
               .containsEntry("user", manualTrigger.user)
@@ -111,8 +111,8 @@ class StartExecutionTest : Spek({
       it("configures the stage correctly") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          assertThat(firstValue.stages).hasSize(1)
-          assertSoftly {
+          softly {
+            assertThat(firstValue.stages).hasSize(1)
             firstValue.stages.first()
               .apply {
                 assertThat(type).isEqualTo("wait")
@@ -181,7 +181,7 @@ class StartExecutionTest : Spek({
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
           firstValue.let { execution ->
-            assertSoftly {
+            softly {
               assertThat(execution.stages).hasSize(4)
               listOf(stage1, stage2, stage3, stage4).forEach {
                 execution.stageByRef(it.ref).apply {
@@ -256,9 +256,9 @@ class StartExecutionTest : Spek({
       it("parses parameters correctly") {
         argumentCaptor<Execution>().apply {
           verify(launcher).start(capture())
-          assertSoftly {
+          softly {
             assertThat(firstValue.trigger["notifications"])
-              .asList()
+              .asList() // this breaks soft assertion. See https://github.com/joel-costigliola/assertj-core/issues/1156
               .hasSize(1)
               .first()
               .asMap()

@@ -18,12 +18,12 @@ package com.netflix.spinnaker.orca.proto.mapping
 
 import com.google.protobuf.ListValue
 import com.google.protobuf.Value
+import com.netflix.spinnaker.assertj.softly
 import com.netflix.spinnaker.orca.proto.execution.DeployStageSpec
 import com.netflix.spinnaker.orca.proto.execution.DeployStageSpec.ClusterSpec.Ec2ClusterSpec
 import com.netflix.spinnaker.orca.proto.execution.StageSpec
 import com.netflix.spinnaker.orca.proto.pack
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.SoftAssertions.assertSoftly
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
@@ -87,11 +87,11 @@ class DeployStageTest : Spek({
 
     it("should unpack common stage values") {
       stage.apply {
-        assertSoftly {
+        softly {
           assertThat(name).isEqualTo("deploy")
           assertThat(type).isEqualTo("deploy")
           assertThat(refId).isEqualTo("3")
-          assertThat(requisiteStageRefIds).isEqualTo(setOf("1", "2"))
+          assertThat(requisiteStageRefIds).containsExactlyInAnyOrder("1", "2")
         }
       }
     }
@@ -107,10 +107,10 @@ class DeployStageTest : Spek({
         val cluster = clusters.first()
 
         it("should unpack a moniker-compatible cluster name") {
-          assertSoftly {
+          softly {
             val moniker = mapOf("app" to "covfefe", "stack" to "stack", "detail" to "detail", "cluster" to "covfefe-stack-detail")
-            assertThat(cluster).containsEntry("moniker", moniker)
             assertThat(cluster)
+              .containsEntry("moniker", moniker)
               .containsEntry("application", moniker["app"])
               .containsEntry("stack", moniker["stack"])
               .containsEntry("freeFormDetails", moniker["detail"])
@@ -118,7 +118,7 @@ class DeployStageTest : Spek({
         }
 
         it("should unpack non provider-specific cluster details") {
-          assertSoftly {
+          softly {
             assertThat(cluster)
               .containsEntry("cloudProvider", "aws")
               .containsEntry("provider", cluster["cloudProvider"])
@@ -134,7 +134,7 @@ class DeployStageTest : Spek({
         }
 
         it("should unpack provider-specific cluster details") {
-          assertSoftly {
+          softly {
             assertThat(cluster)
               .containsEntry("availabilityZones", mapOf("us-west-2" to listOf("us-west-2a", "us-west-2b", "us-west-2c")))
               .containsEntry("cooldown", 30)

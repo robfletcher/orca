@@ -65,3 +65,11 @@ fun <SELF : Assert<*, ACTUAL>, ACTUAL, PROP>
 ): Assert<*, PROP> =
   assertThat(getter.get(actual))
     .`as`(getter.name) as Assert<*, PROP>
+
+/**
+ * Basically the same as [SoftAssertions#assertSoftly] except [SoftAssertions]
+ * is the _receiver_ of [block] not a parameter to it.
+ */
+fun softly(block: SoftAssertions.() -> Unit) {
+  SoftAssertions.assertSoftly(block)
+}

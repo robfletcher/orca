@@ -65,12 +65,28 @@ message DeployStageSpec {
       int32 max = 2;
       int32 desired = 3;
     }
-
-    message Moniker {
-      string app = 1;
-      string stack = 2;
-      string detail = 3;
-      string cluster = 4;
-    }
   }
+}
+
+message FindImageStageSpec {
+  string cloudProvider = 1;
+  Moniker moniker = 2;
+  string credentials = 3;
+  bool onlyEnabled = 4;
+  SelectionStrategy selectionStrategy = 5;
+  repeated string regions = 6;
+
+  enum SelectionStrategy {
+    NEWEST = 0;
+    LARGEST = 1;
+    OLDEST = 2;
+    FAIL = 3;
+  }
+}
+
+message Moniker {
+  string app = 1;
+  string stack = 2;
+  string detail = 3;
+  string cluster = 4;
 }

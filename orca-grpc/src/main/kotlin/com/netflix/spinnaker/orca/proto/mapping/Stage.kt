@@ -20,7 +20,7 @@ import com.netflix.spinnaker.orca.pipeline.model.Stage
 import com.netflix.spinnaker.orca.proto.execution.DeployStageSpec
 import com.netflix.spinnaker.orca.proto.execution.DeployStageSpec.ClusterSpec
 import com.netflix.spinnaker.orca.proto.execution.DeployStageSpec.ClusterSpec.Ec2ClusterSpec
-import com.netflix.spinnaker.orca.proto.execution.DeployStageSpec.ClusterSpec.Moniker
+import com.netflix.spinnaker.orca.proto.execution.FindImageStageSpec
 import com.netflix.spinnaker.orca.proto.execution.StageSpec
 import com.netflix.spinnaker.orca.proto.execution.WaitStageSpec
 import com.netflix.spinnaker.orca.proto.isA
@@ -35,6 +35,7 @@ fun StageSpec.unpack(): Stage =
     when {
       spec.isA<WaitStageSpec>() -> spec.unpack<WaitStageSpec>().unpackInto(model)
       spec.isA<DeployStageSpec>() -> spec.unpack<DeployStageSpec>().unpackInto(model)
+      spec.isA<FindImageStageSpec>() -> spec.unpack<FindImageStageSpec>().unpackInto(model)
       else ->
         TODO("Stage type ${spec.typeUrl} is not yet supported")
     }
@@ -48,6 +49,13 @@ fun WaitStageSpec.unpackInto(model: Stage) {
 fun DeployStageSpec.unpackInto(model: Stage) {
   model.type = "deploy"
   model.context["clusters"] = clustersList.map(ClusterSpec::unpack)
+}
+
+fun FindImageStageSpec.unpackInto(model: Stage) {
+  model.type = "findImage"
+  model.context.putAll(this.unpack())
+  model.context["cluster"] = moniker.cluster
+  model.context["cloudProviderType"] = cloudProvider
 }
 
 fun ClusterSpec.unpack(): Map<String, Any> =
@@ -72,12 +80,8 @@ fun ClusterSpec.unpack(): Map<String, Any> =
         TODO("Provider specific cluster type ${providerSpec.typeUrl} is not yet supported")
     }
 
-    moniker.unpackInto(model)
+    model["moniker"] = moniker.unpack()
+    model["application"] = moniker.app
+    model["stack"] = moniker.stack
+    model["freeFormDetails"] = moniker.detail
   }
-
-fun Moniker.unpackInto(model: MutableMap<String, Any>) {
-  model["application"] = app
-  model["stack"] = stack
-  model["freeFormDetails"] = detail
-  model["moniker"] = this.unpack()
-}

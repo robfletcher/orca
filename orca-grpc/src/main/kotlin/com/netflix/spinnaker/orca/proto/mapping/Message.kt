@@ -16,15 +16,19 @@
 
 package com.netflix.spinnaker.orca.proto.mapping
 
+import com.google.protobuf.Descriptors
 import com.google.protobuf.Duration
 import com.google.protobuf.Message
 import com.google.protobuf.Struct
+import org.slf4j.LoggerFactory
 
 /**
  * Generic unpack that will turn any [Message] into a [Map].
  */
 fun Message.unpack(): Map<String, Any> =
   mutableMapOf<String, Any>().also(this::unpackInto)
+
+private val log = LoggerFactory.getLogger("com.netflix.spinnaker.orca.proto.mapping")
 
 /**
  * Generic unpack that will turn any [Message] into a [Map].
@@ -34,6 +38,7 @@ fun Message.unpackInto(model: MutableMap<String, Any>) {
     model[descriptor.jsonName] = when (value) {
       is Duration -> value.seconds.toInt()
       is Struct -> value.unpack()
+      is Descriptors.EnumValueDescriptor -> value.name
       else -> value
     }
   }

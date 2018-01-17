@@ -17,13 +17,18 @@
 package com.netflix.spinnaker.orca
 
 import com.netflix.spinnaker.config.ErrorConfiguration
+import com.netflix.spinnaker.config.GrpcConfig
 import com.netflix.spinnaker.config.StackdriverConfig
 import com.netflix.spinnaker.config.TomcatConfiguration
 import com.netflix.spinnaker.kork.PlatformComponents
 import com.netflix.spinnaker.orca.applications.config.ApplicationConfig
 import com.netflix.spinnaker.orca.bakery.config.BakeryConfiguration
 import com.netflix.spinnaker.orca.clouddriver.config.CloudDriverConfiguration
-import com.netflix.spinnaker.orca.config.*
+import com.netflix.spinnaker.orca.config.KeelConfiguration
+import com.netflix.spinnaker.orca.config.OrcaConfiguration
+import com.netflix.spinnaker.orca.config.OrcaPersistenceConfiguration
+import com.netflix.spinnaker.orca.config.PipelineTemplateConfiguration
+import com.netflix.spinnaker.orca.config.RedisConfiguration
 import com.netflix.spinnaker.orca.echo.config.EchoConfiguration
 import com.netflix.spinnaker.orca.eureka.DiscoveryPollingConfiguration
 import com.netflix.spinnaker.orca.flex.config.FlexConfiguration
@@ -67,7 +72,8 @@ import org.springframework.scheduling.annotation.EnableAsync
   PipelineTemplateConfiguration,
   KayentaConfiguration,
   WebhookConfiguration,
-  KeelConfiguration
+  KeelConfiguration,
+  GrpcConfig
 ])
 @ComponentScan([
   "com.netflix.spinnaker.config"

@@ -129,7 +129,7 @@ class DeployStageTest : Spek({
               .containsEntry("loadBalancers", listOf("covfefe-frontend"))
               .containsEntry("securityGroups", listOf("covfefe-sg", "infra"))
               .containsEntry("tags", emptyMap<String, String>())
-              .containsEntry("entityTags", emptyMap<String, Any>())
+              .containsEntry("entityTags", emptyList<Map<String, Any>>())
           }
         }
 

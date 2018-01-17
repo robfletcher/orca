@@ -19,12 +19,14 @@ package com.netflix.spinnaker.orca.proto.mapping
 import com.netflix.spinnaker.orca.pipeline.model.Execution
 import com.netflix.spinnaker.orca.pipeline.model.Execution.ExecutionType.PIPELINE
 import com.netflix.spinnaker.orca.proto.execution.ExecutionRequest
+import java.time.Clock
 
 fun ExecutionRequest.unpack(): Execution =
   Execution(PIPELINE, application)
     .also { model ->
       model.pipelineConfigId = id
       model.name = name
+      model.buildTime = Clock.systemDefaultZone().millis()
       model.trigger.putAll(trigger.unpack())
       stagesList.forEach { stage ->
         model.stages.add(stage.unpack())

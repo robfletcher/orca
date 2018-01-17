@@ -16,6 +16,7 @@
 
 package com.netflix.spinnaker.orca.proto.mapping
 
+import com.netflix.spinnaker.assertj.asMap
 import com.netflix.spinnaker.assertj.softly
 import com.netflix.spinnaker.orca.proto.execution.FindImageStageSpec
 import com.netflix.spinnaker.orca.proto.execution.FindImageStageSpec.SelectionStrategy
@@ -67,7 +68,14 @@ class FindImageStageTest : Spek({
     it("should unpack a moniker-compatible cluster name") {
       softly {
         assertThat(stage.context)
-          .containsEntry("moniker", findImageStageSpec.moniker)
+          .hasEntrySatisfying("moniker") {
+            assertThat(it)
+              .asMap()
+              .containsEntry("app", findImageStageSpec.moniker.app)
+              .containsEntry("stack", findImageStageSpec.moniker.stack)
+              .containsEntry("detail", findImageStageSpec.moniker.detail)
+              .containsEntry("cluster", findImageStageSpec.moniker.cluster)
+          }
           .containsEntry("cluster", findImageStageSpec.moniker.cluster)
       }
     }

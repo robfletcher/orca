@@ -17,15 +17,19 @@
 package com.netflix.spinnaker.orca.proto
 
 import com.netflix.spinnaker.orca.pipeline.ExecutionLauncher
+import com.netflix.spinnaker.orca.pipeline.persistence.ExecutionRepository
 import com.netflix.spinnaker.orca.proto.execution.ExecutionRequest
 import com.netflix.spinnaker.orca.proto.execution.ExecutionResponse
 import com.netflix.spinnaker.orca.proto.execution.ExecutionServiceGrpc
 import com.netflix.spinnaker.orca.proto.mapping.unpack
 import io.grpc.stub.StreamObserver
+import org.lognet.springboot.grpc.GRpcService
 import org.slf4j.LoggerFactory
 
+@GRpcService
 class ExecutionService(
-  private val launcher: ExecutionLauncher
+  private val launcher: ExecutionLauncher,
+  private val repository: ExecutionRepository
 ) : ExecutionServiceGrpc.ExecutionServiceImplBase() {
 
   private val log = LoggerFactory.getLogger(javaClass)
@@ -37,7 +41,7 @@ class ExecutionService(
     log.info("Received execution request… $request")
 
     val execution = request.unpack()
-
+    repository.store(execution)
     launcher.start(execution)
 
     ExecutionResponse

@@ -22,6 +22,7 @@ import com.netflix.spinnaker.assertj.asMap
 import com.netflix.spinnaker.assertj.softly
 import com.netflix.spinnaker.orca.pipeline.ExecutionLauncher
 import com.netflix.spinnaker.orca.pipeline.model.Execution
+import com.netflix.spinnaker.orca.pipeline.persistence.ExecutionRepository
 import com.netflix.spinnaker.orca.proto.execution.*
 import com.netflix.spinnaker.orca.proto.execution.Notification.NotificationType
 import com.netflix.spinnaker.orca.proto.execution.Notification.newBuilder
@@ -40,7 +41,8 @@ import java.util.*
 class StartExecutionTest : Spek({
 
   val launcher: ExecutionLauncher = mock()
-  val service = ExecutionService(launcher)
+  val repository: ExecutionRepository = mock()
+  val service = ExecutionService(launcher, repository)
   fun resetMocks() = reset(launcher)
 
   val waitStage = StageSpec.newBuilder()

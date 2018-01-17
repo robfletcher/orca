@@ -14,22 +14,13 @@
  * limitations under the License.
  */
 
-apply plugin: "com.google.protobuf"
+package com.netflix.spinnaker.config
 
-apply from: "$rootDir/gradle/kotlin.gradle"
-apply from: "$rootDir/gradle/spek.gradle"
-apply from: "$rootDir/gradle/grpc.gradle"
+import org.springframework.context.annotation.ComponentScan
+import org.springframework.context.annotation.Configuration
 
-repositories {
-  jcenter()
-}
-
-dependencies {
-  compile project(":orca-core")
-  compile "org.lognet:grpc-spring-boot-starter:2.1.4"
-
-  testCompile "org.assertj:assertj-core:3.9.0"
-  testCompile "org.funktionale:funktionale-partials:1.1"
-  testCompile "org.springframework.boot:spring-boot-test:${spinnaker.version('springBoot')}"
-  testCompile project(":orca-test")
-}
+@Configuration
+@ComponentScan(basePackages = [
+  "com.netflix.spinnaker.orca.proto"
+])
+open class GrpcConfig

@@ -54,6 +54,7 @@ fun DeployStageSpec.unpackInto(model: Stage) {
 fun FindImageStageSpec.unpackInto(model: Stage) {
   model.type = "findImage"
   model.context.putAll(this.unpack())
+  model.context["moniker"] = moniker.unpack()
   model.context["cluster"] = moniker.cluster
   model.context["cloudProviderType"] = cloudProvider
 }
@@ -72,7 +73,7 @@ fun ClusterSpec.unpack(): Map<String, Any> =
     model["securityGroups"] = securityGroupsList
 
     model["tags"] = tagsMap
-    model["entityTags"] = entityTags.unpack()
+    model["entityTags"] = entityTagsList.map { it.unpack() }
 
     when {
       providerSpec.isA<Ec2ClusterSpec>() -> providerSpec.unpack<Ec2ClusterSpec>().unpackInto(model)

@@ -15,22 +15,24 @@
  */
 package com.netflix.spinnaker.orca.pipelinetemplate.pipeline;
 
-import java.util.*;
-import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.spinnaker.orca.front50.Front50Service;
 import com.netflix.spinnaker.orca.front50.pipeline.UpdatePipelineStage;
 import com.netflix.spinnaker.orca.pipeline.StageDefinitionBuilder;
 import com.netflix.spinnaker.orca.pipeline.TaskNode.Builder;
+import com.netflix.spinnaker.orca.pipeline.graph.StageGraphBuilder;
 import com.netflix.spinnaker.orca.pipeline.model.Stage;
-import com.netflix.spinnaker.orca.pipeline.model.SyntheticStageOwner;
 import com.netflix.spinnaker.orca.pipelinetemplate.tasks.PlanTemplateDependentsTask;
 import com.netflix.spinnaker.orca.pipelinetemplate.tasks.UpdatePipelineTemplateTask;
 import com.netflix.spinnaker.orca.pipelinetemplate.v1schema.model.PipelineTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import javax.annotation.Nonnull;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
 
 @Component
 public class UpdatePipelineTemplateStage implements StageDefinitionBuilder {
@@ -54,22 +56,22 @@ public class UpdatePipelineTemplateStage implements StageDefinitionBuilder {
       .withTask("updatePipelineTemplate", UpdatePipelineTemplateTask.class);
   }
 
-  @Nonnull
   @Override
-  public List<Stage> aroundStages(@Nonnull Stage stage) {
+  public void afterStages(
+    @Nonnull Stage parent, @Nonnull StageGraphBuilder graph) {
     if (front50Service == null) {
-      return Collections.emptyList();
+      return;
     }
 
-    if (!stage.getContext().containsKey("pipelineTemplate")) {
+    if (!parent.getContext().containsKey("pipelineTemplate")) {
       throw new IllegalArgumentException("Missing required task parameter (pipelineTemplate)");
     }
 
-    if (!(stage.getContext().get("pipelineTemplate") instanceof String)) {
+    if (!(parent.getContext().get("pipelineTemplate") instanceof String)) {
       throw new IllegalArgumentException("'pipelineTemplate' context key must be a base64-encoded string: Ensure you're on the most recent version of gate");
     }
 
-    PipelineTemplate pipelineTemplate = stage.decodeBase64(
+    PipelineTemplate pipelineTemplate = parent.decodeBase64(
       "/pipelineTemplate",
       PipelineTemplate.class,
       pipelineTemplateObjectMapper
@@ -77,27 +79,21 @@ public class UpdatePipelineTemplateStage implements StageDefinitionBuilder {
 
     List<Map<String, Object>> dependentPipelines = front50Service.getPipelineTemplateDependents(pipelineTemplate.getId(), true);
 
-    return dependentPipelines.stream()
-      .map(pipeline -> configureSavePipelineStage(stage, pipeline))
-      .collect(Collectors.toList());
+    dependentPipelines
+      .forEach(pipeline ->
+        graph.add(it -> {
+          it.setType(updatePipelineStage.getType());
+          it.setName("updateDependentPipeline");
+          try {
+            it.getContext().put(
+              "pipeline",
+              Base64.getEncoder().encodeToString(pipelineTemplateObjectMapper.writeValueAsBytes(pipeline))
+            );
+          } catch (JsonProcessingException e) {
+            throw new RuntimeException(String.format("Failed converting pipeline to JSON: %s", pipeline.get("id")), e);
+          }
+        })
+      );
   }
 
-  private Stage configureSavePipelineStage(Stage stage, Map<String, Object> pipeline) {
-    Map<String, Object> context = new HashMap<>();
-
-    try {
-      context.put("pipeline", Base64.getEncoder().encodeToString(pipelineTemplateObjectMapper.writeValueAsBytes(pipeline)));
-    } catch (JsonProcessingException e) {
-      throw new RuntimeException(String.format("Failed converting pipeline to JSON: %s", pipeline.get("id")), e);
-    }
-
-    return StageDefinitionBuilder.newStage(
-      stage.getExecution(),
-      updatePipelineStage.getType(),
-      "updateDependentPipeline",
-      context,
-      stage,
-      SyntheticStageOwner.STAGE_AFTER
-    );
-  }
 }

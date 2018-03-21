@@ -16,6 +16,7 @@
 
 package com.netflix.spinnaker.orca.clouddriver.pipeline.servergroup.strategies
 
+import javax.annotation.Nonnull
 import com.netflix.spinnaker.moniker.Moniker
 import com.netflix.spinnaker.orca.clouddriver.pipeline.AbstractCloudProviderAwareStage
 import com.netflix.spinnaker.orca.clouddriver.pipeline.servergroup.support.Location
@@ -27,11 +28,9 @@ import com.netflix.spinnaker.orca.kato.tasks.DiffTask
 import com.netflix.spinnaker.orca.pipeline.TaskNode
 import com.netflix.spinnaker.orca.pipeline.graph.StageGraphBuilder
 import com.netflix.spinnaker.orca.pipeline.model.Stage
-import com.netflix.spinnaker.orca.pipeline.model.SyntheticStageOwner
 import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
 import static com.netflix.spinnaker.orca.clouddriver.pipeline.servergroup.strategies.DeployStagePreProcessor.StageDefinition
-import static com.netflix.spinnaker.orca.pipeline.StageDefinitionBuilder.newStage
 
 @Slf4j
 abstract class AbstractDeployStrategyStage extends AbstractCloudProviderAwareStage {
@@ -94,44 +93,71 @@ abstract class AbstractDeployStrategyStage extends AbstractCloudProviderAwareSta
   }
 
   @Override
-  def List<Stage> aroundStages(Stage stage) {
-    correctContext(stage)
-    Strategy strategy = (Strategy) strategies.findResult(noStrategy, {
-      it.name.equalsIgnoreCase(stage.context.strategy) ? it : null
-    })
+  void beforeStages(@Nonnull Stage parent, @Nonnull StageGraphBuilder graph) {
+    correctContext(parent)
 
-    def preProcessors = deployStagePreProcessors.findAll { it.supports(stage) }
-    def stages = strategy.composeFlow(stage)
-
-    def stageData = stage.mapTo(StageData)
+    def preProcessors = deployStagePreProcessors.findAll { it.supports(parent) }
+    def stageData = parent.mapTo(StageData)
     preProcessors.each {
       def defaultContext = [
         credentials  : stageData.account,
         cloudProvider: stageData.cloudProvider
       ]
-      it.beforeStageDefinitions(stage).each {
-        stages << newStage(
-          stage.execution,
-          it.stageDefinitionBuilder.type,
-          it.name,
-          defaultContext + it.context,
-          stage,
-          SyntheticStageOwner.STAGE_BEFORE
-        )
-      }
-      it.afterStageDefinitions(stage).each {
-        stages << newStage(
-          stage.execution,
-          it.stageDefinitionBuilder.type,
-          it.name,
-          defaultContext + it.context,
-          stage,
-          SyntheticStageOwner.STAGE_AFTER
-        )
+      it.beforeStageDefinitions(parent).inject(null) { Stage previous, definition ->
+        if (previous == null) {
+          graph.add {
+            it.type = definition.stageDefinitionBuilder.type
+            it.name = definition.name
+            it.context = defaultContext + definition.context
+          }
+        } else {
+          graph.connect(previous) {
+            it.type = definition.stageDefinitionBuilder.type
+            it.name = definition.name
+            it.context = defaultContext + definition.context
+          }
+        }
       }
     }
+  }
 
-    return stages
+  @Override
+  void afterStages(@Nonnull Stage parent, @Nonnull StageGraphBuilder graph) {
+    correctContext(parent)
+    Strategy strategy = (Strategy) strategies.findResult(noStrategy, {
+      it.name.equalsIgnoreCase(parent.context.strategy) ? it : null
+    })
+
+    def preProcessors = deployStagePreProcessors.findAll { it.supports(parent) }
+    def stages = strategy.composeFlow(parent) // TODO: pass graph to this method
+    graph.add(stages.head())
+    stages.tail().inject(stages.head()) { Stage previous, it ->
+      graph.connect(previous, it)
+    }
+
+    def stageData = parent.mapTo(StageData)
+    preProcessors.each {
+      def defaultContext = [
+        credentials  : stageData.account,
+        cloudProvider: stageData.cloudProvider
+      ]
+      it.afterStageDefinitions(parent)
+        .inject(stages.isEmpty() ? null : stages.last()) { Stage previous, definition ->
+        if (previous == null) {
+          graph.add {
+            it.type = definition.stageDefinitionBuilder.type
+            it.name = definition.name
+            it.context = defaultContext + definition.context
+          }
+        } else {
+          graph.connect(previous) {
+            it.type = definition.stageDefinitionBuilder.type
+            it.name = definition.name
+            it.context = defaultContext + definition.context
+          }
+        }
+      }
+    }
   }
 
   @Override

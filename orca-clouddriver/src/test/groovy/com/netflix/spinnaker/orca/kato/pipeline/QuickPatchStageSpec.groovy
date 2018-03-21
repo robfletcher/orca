@@ -19,6 +19,7 @@ package com.netflix.spinnaker.orca.kato.pipeline
 import com.netflix.spinnaker.orca.ExecutionStatus
 import com.netflix.spinnaker.orca.clouddriver.utils.OortHelper
 import com.netflix.spinnaker.orca.jackson.OrcaObjectMapper
+import com.netflix.spinnaker.orca.pipeline.graph.StageGraphBuilder
 import com.netflix.spinnaker.orca.pipeline.model.Execution
 import com.netflix.spinnaker.orca.pipeline.model.Stage
 import spock.lang.Specification
@@ -69,7 +70,8 @@ class QuickPatchStageSpec extends Specification {
     }
 
     when:
-    quickPatchStage.aroundStages(stage)
+    def graph = StageGraphBuilder.afterStages(stage)
+    quickPatchStage.afterStages(stage, graph)
 
     then:
     thrown(RuntimeException)
@@ -94,7 +96,9 @@ class QuickPatchStageSpec extends Specification {
     def stage = new Stage(Execution.newPipeline("orca"), "quickPatch", config)
 
     when:
-    def syntheticStages = quickPatchStage.aroundStages(stage)
+    def graph = StageGraphBuilder.afterStages(stage)
+    quickPatchStage.afterStages(stage, graph)
+    def syntheticStages = graph.build()
 
     then:
     syntheticStages.size() == 1
@@ -126,7 +130,9 @@ class QuickPatchStageSpec extends Specification {
     def stage = new Stage(Execution.newPipeline("orca"), "quickPatch", config)
 
     when:
-    def syntheticStages = quickPatchStage.aroundStages(stage)
+    def graph = StageGraphBuilder.afterStages(stage)
+    quickPatchStage.afterStages(stage, graph)
+    def syntheticStages = graph.build()
 
     then:
     1 * oortHelper.getInstancesForCluster(config, null, true, false) >> expectedInstances

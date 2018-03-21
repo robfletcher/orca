@@ -27,11 +27,10 @@ import com.netflix.spinnaker.orca.kayenta.model.KayentaCanaryContext
 import com.netflix.spinnaker.orca.kayenta.model.RunCanaryContext
 import com.netflix.spinnaker.orca.kayenta.tasks.AggregateCanaryResultsTask
 import com.netflix.spinnaker.orca.pipeline.StageDefinitionBuilder
-import com.netflix.spinnaker.orca.pipeline.StageDefinitionBuilder.newStage
 import com.netflix.spinnaker.orca.pipeline.TaskNode.Builder
 import com.netflix.spinnaker.orca.pipeline.WaitStage
+import com.netflix.spinnaker.orca.pipeline.graph.StageGraphBuilder
 import com.netflix.spinnaker.orca.pipeline.model.Stage
-import com.netflix.spinnaker.orca.pipeline.model.SyntheticStageOwner.STAGE_BEFORE
 import org.springframework.stereotype.Component
 import java.time.Clock
 import java.time.Duration
@@ -40,7 +39,6 @@ import java.time.Instant
 import java.time.Instant.now
 import java.time.temporal.ChronoUnit.MINUTES
 import java.util.*
-import java.util.Collections.singletonMap
 
 @Component
 class KayentaCanaryStage(
@@ -56,8 +54,8 @@ class KayentaCanaryStage(
     builder.withTask<AggregateCanaryResultsTask>("aggregateCanaryResults")
   }
 
-  override fun aroundStages(stage: Stage): List<Stage> {
-    val canaryConfig = stage.mapTo<KayentaCanaryContext>("/canaryConfig")
+  override fun beforeStages(parent: Stage, graph: StageGraphBuilder) {
+    val canaryConfig = parent.mapTo<KayentaCanaryContext>("/canaryConfig")
 
     if (canaryConfig.scopes.isEmpty()) {
       throw IllegalArgumentException("Canary stage configuration must contain at least one scope.")
@@ -81,29 +79,34 @@ class KayentaCanaryStage(
 
     val stages = ArrayList<Stage>()
 
-    if (canaryConfig.beginCanaryAnalysisAfter > ZERO) {
-      stages.add(newStage(
-        stage.execution,
-        waitStage.type,
-        "Warmup Wait",
-        singletonMap<String, Any>("waitTime", canaryConfig.beginCanaryAnalysisAfter.seconds),
-        stage,
-        STAGE_BEFORE
-      ))
+    val warmupWaitStage = if (canaryConfig.beginCanaryAnalysisAfter > ZERO) {
+      graph.add {
+        it.type = waitStage.type
+        it.name = "Warmup Wait"
+        it.context["waitTime"] = canaryConfig.beginCanaryAnalysisAfter.seconds
+      }
+    } else {
+      null
     }
 
+    var previousStage = warmupWaitStage
     for (i in 1..numIntervals) {
       // If an end time was explicitly specified, we don't need to synchronize
       // the execution of the canary pipeline with the real time.
       if (canaryConfig.endTime == null) {
-        stages.add(newStage(
-          stage.execution,
-          waitStage.type,
-          "Interval Wait #" + i,
-          singletonMap<String, Any>("waitTime", canaryAnalysisInterval.seconds),
-          stage,
-          STAGE_BEFORE
-        ))
+        if (previousStage == null) {
+          previousStage = graph.add {
+            it.type = waitStage.type
+            it.name = "Interval Wait #$i"
+            it.context["waitTime"] = canaryAnalysisInterval.seconds
+          }
+        } else {
+          previousStage = graph.connect(previousStage) {
+            it.type = waitStage.type
+            it.name = "Interval Wait #$i"
+            it.context["waitTime"] = canaryAnalysisInterval.seconds
+          }
+        }
       }
 
       val runCanaryContext = RunCanaryContext(
@@ -114,17 +117,20 @@ class KayentaCanaryStage(
         canaryConfig.scoreThresholds
       )
 
-      stages.add(newStage(
-        stage.execution,
-        RunCanaryPipelineStage.STAGE_TYPE,
-        "Run Canary #" + i,
-        mapper.convertValue<Map<String, Any>>(runCanaryContext),
-        stage,
-        STAGE_BEFORE
-      ))
+      if (previousStage == null) {
+        previousStage = graph.add {
+          it.type = RunCanaryPipelineStage.STAGE_TYPE
+          it.name = "Run Canary #$i"
+          it.context = mapper.convertValue<Map<String, Any>>(runCanaryContext)
+        }
+      } else {
+        previousStage = graph.connect(previousStage) {
+          it.type = RunCanaryPipelineStage.STAGE_TYPE
+          it.name = "Run Canary #$i"
+          it.context = mapper.convertValue<Map<String, Any>>(runCanaryContext)
+        }
+      }
     }
-
-    return stages
   }
 
   fun buildRequestScopes(config: KayentaCanaryContext, interval: Int, intervalDuration: Duration): Map<String, CanaryScopes> {
